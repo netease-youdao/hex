@@ -1,6 +1,6 @@
 ![heX logo](http://hex.youdao.com/images/hex.png)
 
-heX
+<!-- heX -->
 ================================================================================
 #### A Solution for Building Desktop Application Using HTML5 and Node.js
 
