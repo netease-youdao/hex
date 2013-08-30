@@ -69,14 +69,14 @@ if (!fs.existsSync(dir)) {
 
 There are 6 kinds of binary distributions.
 
- * [heX end user distribution] (http://hex.youdao.com/downloads/hex_1453_end_user_windows.zip)
- * [heX end user distribution without Node.js] (http://hex.youdao.com/downloads/hex_1453_end_user_no_node_windows.zip)
- * [heX web develop distribution] (http://hex.youdao.com/downloads/hex_1453_web_develop_windows.zip)
- * [heX web develop distribution without Node.js] (http://hex.youdao.com/downloads/hex_1453_web_develop_no_node_windows.zip)
- * [heX module distribution] (http://hex.youdao.com/downloads/hex_module_1453_windows.zip)
-  * [heX module PDB] (http://hex.youdao.com/downloads/hex_module_1453_windows_symbols.zip)
- * [heX module distribution without Node.js] (http://hex.youdao.com/downloads/hex_module_1453_no_node_windows.zip)
-  * [heX module PDB without Node.js] (http://hex.youdao.com/downloads/hex_module_1453_no_node_windows_symbols.zip)
+ * [heX end user distribution] (http://codown.youdao.com/hex/hex_1453_end_user_windows.zip)
+ * [heX end user distribution without Node.js] (http://codown.youdao.com/hex/hex_1453_end_user_no_node_windows.zip)
+ * [heX web develop distribution] (http://codown.youdao.com/hex/hex_1453_web_develop_windows.zip)
+ * [heX web develop distribution without Node.js] (http://codown.youdao.com/hex/hex_1453_web_develop_no_node_windows.zip)
+ * [heX module distribution] (http://codown.youdao.com/hex/hex_module_1453_windows.zip)
+  * [heX module PDB] (http://codown.youdao.com/hex/hex_module_1453_windows_symbols.zip)
+ * [heX module distribution without Node.js] (http://codown.youdao.com/hex/hex_module_1453_no_node_windows.zip)
+  * [heX module PDB without Node.js] (http://codown.youdao.com/hex/hex_module_1453_no_node_windows_symbols.zip)
 
 The sources are coming soon!!!
 
