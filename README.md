@@ -78,6 +78,8 @@ There are 6 kinds of binary distributions.
  * [heX module distribution without Node.js] (http://hex.youdao.com/downloads/hex_module_1453_no_node_windows.zip)
   * [heX module PDB without Node.js] (http://hex.youdao.com/downloads/hex_module_1453_no_node_windows_symbols.zip)
 
+The sources are coming soon!!!
+
 
 ## Authors
 
