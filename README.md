@@ -1,4 +1,4 @@
-![heX logo](http://netease-youdao.github.io/hex/hex_full_logo.png)
+![heX logo](http://hex.youdao.com/images/hex.png)
 
 heX
 ================================================================================
