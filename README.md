@@ -2,7 +2,7 @@
 
 <!-- heX -->
 ================================================================================
-#### A Solution for Building Desktop Application Using HTML5 and Node.js
+#### A Solution to Building Desktop Application Using HTML5 and Node.js
 
 heX is a solution that provides a new way to build cross-platform desktop application using the web technology. heX bases on CEF and merges Chromium and Node.js, so that the modules or third-party extensions of Node.js can be "required" in the web page, and the DOM element of HTML can be visited in Node.js' modules. heX can also be embedded as a web container module into the desktop projects.
 
