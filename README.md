@@ -4,51 +4,51 @@
 ================================================================================
 #### A Solution to Building Desktop Application Using HTML5 and Node.js
 
-heX is a solution that provides a new way to build cross-platform desktop application using the web technology. heX bases on CEF and merges Chromium and Node.js, so that the modules or third-party extensions of Node.js can be "required" in the web page, and the DOM element of HTML can be visited in Node.js' modules. heX can also be embedded as a web container module into the desktop projects.
+heX is a solution that provides a new way to build cross-platform desktop application using web technology. heX is based on CEF and integrates Chromium and Node.js. Modules or third-party extensions of Node.js can be "required" from the web page, while the DOM element of HTML can also be visited from Node.js' modules. In addition, heX can be embedded as a web container module into desktop projects, allowing desktop applications to take advantage of HTML5 features.
 
  * Homepage: <http://hex.youdao.com>
  * Mailing list: <https://groups.google.com/group/youdao_hex>
- * Documentation: <http://netease-youdao.github.io/hex/>
+ * Documentation: <http://hex.youdao.com/documentation>
  * Wiki: <https://github.com/netease-youdao/hex/wiki>
  * Issues: <https://github.com/netease-youdao/hex/issues>
 
 
 ## Features
 
-### Efficient
- * Chromium's new web features
+### Powerful but Easy to Use
+ * Chromium's new web features at your fingertips
  * Multiple/Single process architecture
- * Web developer tools
+ * Works with major web developer tools
 
-### Easy
- * Using JavaScript, CSS, HTML
- * Low cost of learning, the main API from Chromium and Node.js
- * Simply by configuring manifest to use
+### Low Learning Cost 
+ * Supporting JavaScript, CSS, HTML
+ * Main API consistent with those of Chromium and Node.js
+ * Easy integration into your applications by simply configuring the manifest
 
 ### Extensible
- * Plenty of third-party JavaScript and C++ extension of Node.js can be used
+ * Supporting any third-party JavaScript and C++ extension of Node.js
 
 
 ## Why should I use heX?
 
-HTML5 standard was designated as a Candidate Recommandation in December 2012. Chromium as a rapid development of open source project has good support for HTML5 for a long time. And Node.js using an event-driven, high throughput non-blocking I/O model provides a variety of native operating API, so that we can do more via JavaScript. heX merges them and realize complementary advantages, thus we can use it to develop desktop application via pure web front-end technology. 
+HTML5 standard was designated as a Candidate Recommandation in December 2012. Chromium as a rapid development of open source project has good support for HTML5 for a long time. On the other hand, Node.js, which uses an event-driven, high throughput non-blocking I/O model, provides a variety of native operating APIs and enables a rich set of functionalities for JavaScript. heX integrates the two and retains advantages of both components. It enables one to develop desktop applications via pure web front-end technology.
 
 heX has the following advantages:
- * Easy to use, web developer can use their best technology(browser and Node.js APIs), the cost of learning is quite low.
- * Desiging GUI is as efficient as we debug a web page in the Chrome.
- * Based on Node.js convenient extension mechanism, the function is unlimited.
+ * Easy to use, web developer can use their favorite technology (browser and Node.js APIs), the learning cost is quite low.
+ * Designing GUI is as efficient as we debug a web page in the Chrome.
+ * Based on Node.js convenient extension mechanism, the functionalities can be easily extended.
 
 
 ## How to develop with heX?
 
-Start to develop a desktop application with heX is quite simple. With the following references in Wiki, you can get started quickly. [ links are coming soon. ]
+Developing a desktop application with heX is very simple. The following Wiki references allow you to get started quickly. [ links are coming soon. ]
 
  * Quick Start Guide
  * heX Manifest Instructions
  * heX Native API Instructions
  * FAQ
 
-We can write the code like this:
+A piece of sample code looks like this:
 ```js
 var fs = require('fs');
 var path = require('path');
