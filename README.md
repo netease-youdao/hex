@@ -27,11 +27,12 @@ heX is a solution that provides a new way to build cross-platform desktop applic
 
 ### Extensible
  * Supporting any third-party JavaScript and C++ extension of Node.js
+ * A platform to share the special heX extensions
 
 
 ## Why should I use heX?
 
-HTML5 standard was designated as a Candidate Recommandation in December 2012. Chromium as a rapid development of open source project has good support for HTML5 for a long time. On the other hand, Node.js, which uses an event-driven, high throughput non-blocking I/O model, provides a variety of native operating APIs and enables a rich set of functionalities for JavaScript. heX integrates the two and retains advantages of both components. It enables one to develop desktop applications via pure web front-end technology.
+HTML5 standard was designated as a Candidate Recommendation in December 2012. Chromium as a rapid development of open source project has good support for HTML5 for a long time. On the other hand, Node.js, which uses an event-driven, high throughput non-blocking I/O model, provides a variety of native operating APIs and enables a rich set of functionalities for JavaScript. heX integrates the two and retains advantages of both components. It enables one to develop desktop applications via pure web front-end technology.
 
 heX has the following advantages:
  * Easy to use, web developer can use their favorite technology (browser and Node.js APIs), the learning cost is quite low.
