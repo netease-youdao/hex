@@ -2,11 +2,13 @@
 
 <!-- heX -->
 ================================================================================
-#### A Solution to Building Desktop Application Using HTML5 and Node.js
+### A Solution to Building Desktop Application Using HTML5 and Node.js
 
 heX is a solution that provides a new way to build cross-platform desktop application using web technology. heX is based on CEF and integrates Chromium and Node.js. Modules or third-party extensions of Node.js can be "required" from the web page, while the DOM element of HTML can also be visited from Node.js' modules. In addition, heX can be embedded as a web container module into desktop projects, allowing desktop applications to take advantage of HTML5 features.
 
  * Homepage: <http://hex.youdao.com>
+ * HeXium homepage: <http://hex.youdao.com/hexium>
+ * Downloads: <http://hex.youdao.com/downloads>
  * Mailing list: <https://groups.google.com/group/youdao_hex>
  * Documentation: <http://hex.youdao.com/documentation>
  * Wiki: <https://github.com/netease-youdao/hex/wiki>
@@ -29,6 +31,9 @@ heX is a solution that provides a new way to build cross-platform desktop applic
  * Supporting any third-party JavaScript and C++ extension of Node.js
  * A platform to share the special heX extensions
 
+### Debugging Node.js in developer tools
+ * HeXium = Chromium + Node.js
+
 
 ## Why should I use heX?
 
@@ -40,6 +45,13 @@ heX has the following advantages:
  * Based on Node.js convenient extension mechanism, the functionalities can be easily extended.
 
 
+## Why was HeXium born
+
+A solution for developing and debugging traditional web front and Node.js even more JavaScript host environments by the cross-platform way.
+  * Developer tools for heX as we develop web pages in Chrome
+  * An environment to debug Node.js.
+
+
 ## How to develop with heX?
 
 Developing a desktop application with heX is very simple. The following Wiki references allow you to get started quickly. [ links are coming soon. ]
@@ -48,6 +60,7 @@ Developing a desktop application with heX is very simple. The following Wiki ref
  * heX Manifest Instructions
  * heX Native API Instructions
  * FAQ
+
 
 A piece of sample code looks like this:
 ```js
@@ -83,13 +96,14 @@ The sources are coming soon!!!
 
 
 ## Authors
+  * NetEase Youdao Information Technology (Beijing) Co.
 
 
 ## License
 
 New BSD License
 
-Copyright (c) 2012-2013 NetEase Youdao Inc. and other heX contributors.
+Copyright (c) 2012-2014 NetEase Youdao Inc. and other heX contributors.
 Portions Copyright (c) 2008-2013 Marshall A.Greenblatt, 2006-2009
 Google Inc., and Joyent, Inc. All rights reserved.
 
