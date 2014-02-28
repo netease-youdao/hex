@@ -1,0 +1,67 @@
+Index: net.gyp
+===================================================================
+--- net.gyp	(revision 220934)
++++ net.gyp	(working copy)
+@@ -2564,6 +2564,10 @@
+               },
+             ],
+           ],
++          # For heX
++          'defines': [
++            'USE_GLIB_DEPRECATIONS_MACROS',
++          ],
+           'sources': [
+             'tools/net_watcher/net_watcher.cc',
+           ],
+Index: proxy/proxy_resolver_v8.cc
+===================================================================
+--- proxy/proxy_resolver_v8.cc	(revision 220934)
++++ proxy/proxy_resolver_v8.cc	(working copy)
+@@ -331,6 +331,14 @@
+ 
+ // ProxyResolverV8::Context ---------------------------------------------------
+ 
++// For heX
++// Refer to https://code.google.com/p/chromium/issues/detail?id=77725 and
++// http://www.magpcss.org/ceforum/viewtopic.php?f=6&t=10570
++#if defined(HEXCLIENT)
++#define V8_ISOLATE_SCOPE(isolate) v8::Isolate::Scope isolate_scope( \
++  v8::Isolate::GetCurrent() ? v8::Isolate::GetCurrent() : isolate);
++#endif  // HEXCLIENT
++
+ class ProxyResolverV8::Context {
+  public:
+   Context(ProxyResolverV8* parent, v8::Isolate* isolate)
+@@ -342,6 +350,10 @@
+   ~Context() {
+     v8::Locker locked(isolate_);
+ 
++    // For heX
++#if defined(HEXCLIENT)
++    V8_ISOLATE_SCOPE(isolate_);
++#endif  // HEXCLIENT
+     v8_this_.Dispose();
+     v8_context_.Dispose();
+   }
+@@ -352,6 +364,10 @@
+ 
+   int ResolveProxy(const GURL& query_url, ProxyInfo* results) {
+     v8::Locker locked(isolate_);
++    // For heX
++#if defined(HEXCLIENT)
++    V8_ISOLATE_SCOPE(isolate_);
++#endif  // HEXCLIENT
+     v8::HandleScope scope(isolate_);
+ 
+     v8::Local<v8::Context> context =
+@@ -405,6 +421,10 @@
+ 
+   int InitV8(const scoped_refptr<ProxyResolverScriptData>& pac_script) {
+     v8::Locker locked(isolate_);
++    // For heX
++#if defined(HEXCLIENT)
++    V8_ISOLATE_SCOPE(isolate_);
++#endif  // HEXCLIENT
+     v8::HandleScope scope(isolate_);
+ 
+     v8_this_.Reset(isolate_, v8::External::New(this));

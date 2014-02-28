@@ -1,0 +1,85 @@
+Index: build/toolchain.gypi
+===================================================================
+--- build/toolchain.gypi	(revision 16469)
++++ build/toolchain.gypi	(working copy)
+@@ -458,7 +458,8 @@
+                 'Optimization': '0',
+                 'conditions': [
+                   ['component=="shared_library"', {
+-                    'RuntimeLibrary': '3',  # /MDd
++                    # For heX
++                    'RuntimeLibrary': '1',  # /MDd
+                   }, {
+                     'RuntimeLibrary': '1',  # /MTd
+                   }],
+@@ -473,7 +474,8 @@
+                 'BasicRuntimeChecks': '0',
+                 'conditions': [
+                   ['component=="shared_library"', {
+-                    'RuntimeLibrary': '3',  # /MDd
++                    # For heX
++                    'RuntimeLibrary': '1',  # /MDd
+                   }, {
+                     'RuntimeLibrary': '1',  # /MTd
+                   }],
+@@ -488,7 +490,8 @@
+                 'BasicRuntimeChecks': '0',
+                 'conditions': [
+                   ['component=="shared_library"', {
+-                    'RuntimeLibrary': '3',  #/MDd
++                    # For heX
++                    'RuntimeLibrary': '1',  #/MDd
+                   }, {
+                     'RuntimeLibrary': '1',  #/MTd
+                   }],
+@@ -686,7 +689,8 @@
+                 'StringPooling': 'true',
+                 'conditions': [
+                   ['component=="shared_library"', {
+-                    'RuntimeLibrary': '2',  #/MD
++                    # For heX
++                    'RuntimeLibrary': '0',  #/MD
+                   }, {
+                     'RuntimeLibrary': '0',  #/MT
+                   }],
+Index: tools/gyp/v8.gyp
+===================================================================
+--- tools/gyp/v8.gyp	(revision 16469)
++++ tools/gyp/v8.gyp	(working copy)
+@@ -28,6 +28,8 @@
+ {
+   'variables': {
+     'v8_code': 1,
++    # For heX
++    'component': 'shared_library',
+   },
+   'includes': ['../../build/toolchain.gypi', '../../build/features.gypi'],
+   'targets': [
+@@ -82,9 +84,27 @@
+               ],
+             }],
+           ],
++          # For heX
++          'includes': [
++            '../../../chrome/version.gypi',
++          ],
+           'conditions': [
+             ['OS=="mac"', {
+               'xcode_settings': {
++                # For heX
++                'LD_RUNPATH_SEARCH_PATHS': [
++                  # For unbundled binaries.
++                  #'@loader_path/.',
++                  #'@loader_path/../Libraries/.',
++                  # For bundled binaries, to get back from Binary.app/Contents/MacOS.
++                  '@loader_path/../../../Chromium Framework.framework/Libraries/.',
++                  '@loader_path/../Versions/<(version_full)/Chromium Framework.framework/Libraries/.'
++                ],
++                #'LD_DYLIB_INSTALL_NAME': '$(DYLIB_INSTALL_NAME_BASE:standardizepath)/Chromium Framework.framework/Libraries/libv8.dylib',
++                #'DYLIB_INSTALL_NAME_BASE': '@executable_path/../Versions/<(version_full)',
++                #'DYLIB_COMPATIBILITY_VERSION': '<(version_mac_dylib)',
++                #'DYLIB_CURRENT_VERSION': '<(version_mac_dylib)',
++                #'OTHER_LDFLAGS': [ '-Wl', '-ObjC' ],
+                 'OTHER_LDFLAGS': ['-dynamiclib', '-all_load']
+               },
+             }],

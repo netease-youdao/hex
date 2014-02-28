@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grit latest_public_release="0" current_release="1">
+  <outputs>
+    <output filename="grit/hex_resources.h" type="rc_header">
+      <emit emit_type='prepend'></emit>
+    </output>
+    <output filename="hex_resources.pak" type="data_package" />
+  </outputs>
+  <translations />
+  <release seq="1">
+    <includes>
+      <include name="IDR_HEX_DEVTOOLS" file="devtools.html" type="BINDATA" />
+      <include name="IDR_HEX_CREDITS_HTML" file="${about_credits_file}" use_base_dir="false" type="BINDATA" />
+      <include name="IDR_HEX_CREDITS_JS" file="..\..\..\chrome\browser\resources\about_credits.js" type="BINDATA" />
+      <include name="IDR_HEX_CREDITS_SWIFTSHADER_JPG" file="..\..\..\chrome\browser\resources\swiftshader.jpg" type="BINDATA" />
+      <include name="IDR_HEX_LICENSE_TXT" file="..\..\LICENSE" type="BINDATA" />
+      <include name="IDR_HEX_VERSION_HTML" file="version.html" type="BINDATA" />
+      <include name="IDR_HEX_VERSION_CSS" file="version.css" type="BINDATA" />
+      <include name="IDR_HEX_VERSION_JS" file="version.js" type="BINDATA" />
+      <include name="IDR_HEX_VERSION_LOGO" file="hex_logo.png" type="BINDATA" />
+      <include name="IDR_HEX_CLOSE" file="close.png" type="BINDATA" />
+      <include name="IDR_HEX_CLOSE_HOVER" file="close_hover.png" type="BINDATA" />
+      <include name="IDR_HEX_CLOSE_PRESSED" file="close_pressed.png" type="BINDATA" />
+      <include name="IDR_HEX_MINIMIZE" file="minimize.png" type="BINDATA" />
+      <include name="IDR_HEX_MINIMIZE_HOVER" file="minimize_hover.png" type="BINDATA" />
+      <include name="IDR_HEX_MINIMIZE_PRESSED" file="minimize_pressed.png" type="BINDATA" />
+      <include name="IDR_HEX_MAXIMIZE" file="maximize.png" type="BINDATA" />
+      <include name="IDR_HEX_MAXIMIZE_HOVER" file="maximize_hover.png" type="BINDATA" />
+      <include name="IDR_HEX_MAXIMIZE_PRESSED" file="maximize_pressed.png" type="BINDATA" />
+      <include name="IDR_HEX_RESTORE" file="restore.png" type="BINDATA" />
+      <include name="IDR_HEX_RESTORE_HOVER" file="restore_hover.png" type="BINDATA" />
+      <include name="IDR_HEX_RESTORE_PRESSED" file="restore_pressed.png" type="BINDATA" />
+    </includes>
+  </release>
+</grit>

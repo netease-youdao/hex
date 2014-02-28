@@ -1,0 +1,245 @@
+Index: Source/bindings/v8/V8WindowShell.cpp
+===================================================================
+--- Source/bindings/v8/V8WindowShell.cpp	(revision 157102)
++++ Source/bindings/v8/V8WindowShell.cpp	(working copy)
+@@ -65,6 +65,15 @@
+ #include <v8-debug.h>
+ #include <v8.h>
+ 
++// For heX
++#include "hex/src/hex_object.h"
++#include "hex/src/hex_switches.h"
++#include "hex/src/hex_switches_port.h"
++#include "hex/src/hex_use_node.h"
++#include "third_party/node/src/node.h"
++#include "third_party/node/deps/uv/include/uv.h"
++#include "HTMLNames.h"
++
+ namespace WebCore {
+ 
+ static void checkDocumentWrapper(v8::Handle<v8::Object> wrapper, Document* document)
+@@ -98,6 +107,13 @@
+         return;
+ 
+     v8::HandleScope handleScope(m_isolate);
++
++    // For heX
++#if defined(HEXCLIENT)
++    if (hex::CanUseNode())
++#endif  // HEXCLIENT
++        node::StopWithContext(m_context.newLocal(m_isolate));
++
+     m_frame->loader()->client()->willReleaseScriptContext(m_context.newLocal(m_isolate), m_world->worldId());
+ 
+     m_context.clear();
+@@ -228,6 +244,40 @@
+     if (isMainWorld) {
+         updateDocument();
+         setSecurityToken();
++        // For heX, set hex object.
++#if defined(HEXCLIENT)
++        hex::SetupHexObject(m_context.newLocal(m_isolate)->Global());
++#endif  // HEXCLIENT
++#if defined(HEXCLIENT)
++        if (hex::CanUseNode()) {
++#endif  // HEXCLIENT
++            bool isInIframe = m_frame->ownerElement() && m_frame->ownerElement()->hasTagName(WebCore::HTMLNames::iframeTag);
++            bool isDevTools = m_frame->loader()->originalRequest().url().protocolIs("chrome-devtools");
++            bool hasOpener = m_frame->document() && m_frame->document()->domWindow() && m_frame->document()->domWindow()->opener();
++            // For heX, launching Node.JS is required to meet the following conditions:
++            //   A. The current frame does not have an opener. Or the current frame has an opener and "launch_node_in_all_pages" is set in manifest.json.
++            //   B. The preparation work of Node.JS has finished, including settings arguments and initializing libuv, etc.
++            //   C. The current frame is not a DevTools.
++            //   D. The current frame is not in an Iframe element.
++            if (((!hasOpener)
++#if defined(HEXCLIENT)
++                    || (hex::LaunchNodeInAllPages())
++#endif  // HEXCLIENT
++                    )
++                    && node::IsPrepared() &&
++                    !isDevTools &&
++                    !isInIframe) {
++              // For heX, initialize Node.JS.
++              node::StartWithContext(m_context.newLocal(m_isolate), 
++#if defined(HEXCLIENT)
++                      !hex::LoadNodeManually());
++#else
++                      true);
++#endif  // HEXCLIENT
++            }
++#if defined(HEXCLIENT)
++        }
++#endif  // HEXCLIENT
+         if (m_frame->document()) {
+             ContentSecurityPolicy* csp = m_frame->document()->contentSecurityPolicy();
+             context->AllowCodeGenerationFromStrings(csp->allowEval(0, ContentSecurityPolicy::SuppressReport));
+Index: Source/bindings/v8/V8WindowShell.h
+===================================================================
+--- Source/bindings/v8/V8WindowShell.h	(revision 157102)
++++ Source/bindings/v8/V8WindowShell.h	(working copy)
+@@ -44,11 +44,16 @@
+ #include "wtf/text/AtomicString.h"
+ #include <v8.h>
+ 
++// For heX
++#include "HTMLFrameOwnerElement.h"
++
+ namespace WebCore {
+ 
+ class DOMWindow;
+ class Frame;
+ class HTMLDocument;
++// For heX
++class HTMLFrameOwnerElement;
+ 
+ // V8WindowShell represents all the per-global object state for a Frame that
+ // persist between navigations.
+Index: Source/core/core.gyp
+===================================================================
+--- Source/core/core.gyp	(revision 157102)
++++ Source/core/core.gyp	(working copy)
+@@ -40,6 +40,9 @@
+   'variables': {
+     'enable_wexit_time_destructors': 1,
+ 
++    # For heX
++    'hexclient%': '<!(echo %HEXCLIENT%)',
++
+     'webcore_include_dirs': [
+       '../..',
+       '..',
+@@ -231,6 +234,10 @@
+         '<(DEPTH)/url/url.gyp:url_lib',
+         '<(DEPTH)/v8/tools/gyp/v8.gyp:v8',
+         '<(libjpeg_gyp_path):libjpeg',
++        # For heX
++        '<(DEPTH)/third_party/node/node.gyp:node',
++        '<(DEPTH)/third_party/node/deps/uv/uv.gyp:libuv',
++        '<(DEPTH)/hex/hex.gyp:hex',
+       ],
+       'include_dirs': [
+         '<(SHARED_INTERMEDIATE_DIR)/blink',
+@@ -248,6 +255,10 @@
+         'inspector',
+         'page',
+         'svg',
++        # For heX
++        '../../../../third_party/node/deps/uv/include',
++        '../../../../third_party/node/src',
++        '../../../../hex/src',
+       ],
+       'sources': [
+         # These files include all the .cpp files generated from the .idl files
+@@ -320,6 +331,17 @@
+         '<(SHARED_INTERMEDIATE_DIR)/blink/StyleBuilderFunctions.cpp',
+       ],
+       'conditions': [
++        # For heX
++        ['hexclient==1', {
++          'defines': [
++            'HEXCLIENT',
++          ],
++        }],
++        ['hexclient!=1', {
++          'msvs_disabled_warnings': [
++            4005,
++          ],
++        }],
+         ['OS=="win" and component=="shared_library"', {
+           'defines': [
+             'USING_V8_SHARED',
+@@ -405,6 +427,10 @@
+           '<@(webcore_include_dirs)',
+           '<(DEPTH)/gpu',
+           '<(DEPTH)/third_party/angle_dx11/include/GLSLANG',
++          # For heX
++          '../../../../third_party/node/deps/uv/include',
++          '../../../../third_party/node/src',
++          '../../../../hex/src',
+         ],
+         'msvs_disabled_warnings': [
+           4138, 4244, 4291, 4305, 4344, 4355, 4521, 4099,
+@@ -862,6 +888,11 @@
+           'sources': [
+             '<@(webcore_files)',
+           ],
++          # For heX
++          'msvs_disabled_warnings': [
++            4251,
++            4996,
++          ],
+           'sources/': [
+             ['exclude', '.*'],
+             ['include', 'platform/graphics/cpu/arm/filters/.*NEON\\.(cpp|h)'],
+@@ -969,6 +1000,9 @@
+       'type': 'static_library',
+       'dependencies': [
+         'webcore_prerequisites',
++        # For heX
++        '<(DEPTH)/hex/hex.gyp:hex',
++        '<(DEPTH)/third_party/node/node.gyp:node',
+       ],
+       'sources': [
+         '<@(webcore_files)',
+@@ -979,6 +1013,11 @@
+         # FIXME: Figure out how to store these patterns in a variable.
+         ['exclude', '(cf|cg|mac|opentype|svg|win)/'],
+         ['exclude', '(?<!Chromium)(CF|CG|Mac|Win)\\.(cpp|mm?)$'],
++
++        # For heX
++        ['include', '../../../../hex/src'],
++        ['include', '../../../node/deps/uv/include'],
++        ['include', '../../../node/src'],
+       ],
+       'conditions': [
+         # Shard this taret into parts to work around linker limitations.
+Index: Source/devtools/devtools.gyp
+===================================================================
+--- Source/devtools/devtools.gyp	(revision 157102)
++++ Source/devtools/devtools.gyp	(working copy)
+@@ -616,6 +616,8 @@
+                             '<(PRODUCT_DIR)/resources/inspector/inspector.css',
+                             '<(PRODUCT_DIR)/resources/inspector/devtools_extension_api.js',
+                             '<@(devtools_standalone_files)',
++                            # For heXium
++                            '<(DEPTH)/third_party/node/src/node.js'
+                         ],
+                         'images': [
+                             '<@(devtools_image_files)',
+@@ -644,6 +646,8 @@
+                             '<@(devtools_files)',
+                             '<(SHARED_INTERMEDIATE_DIR)/blink/InspectorBackendCommands.js',
+                             '<(PRODUCT_DIR)/resources/inspector/devtools.html',
++                            # For heXium
++                            '<(DEPTH)/third_party/node/src/node.js'
+                         ],
+                         'images': [
+                             '<@(devtools_image_files)',
+Index: Source/web/WebKit.cpp
+===================================================================
+--- Source/web/WebKit.cpp	(revision 157102)
++++ Source/web/WebKit.cpp	(working copy)
+@@ -92,7 +92,8 @@
+ #ifndef NDEBUG
+ static void assertV8RecursionScope()
+ {
+-    ASSERT(!isMainThread() || WebCore::V8RecursionScope::properlyUsed());
++    // For heX
++    //ASSERT(!isMainThread() || WebCore::V8RecursionScope::properlyUsed());
+ }
+ #endif
+ 
+Index: Source/web/web.gyp
+===================================================================
+--- Source/web/web.gyp	(revision 157102)
++++ Source/web/web.gyp	(working copy)
+@@ -64,6 +64,9 @@
+                 '../web',
+                 '<(DEPTH)/third_party/angle_dx11/include',
+                 '<(DEPTH)/third_party/skia/include/utils',
++                # For heX
++                '<(DEPTH)/third_party/node/src',
++                '<(DEPTH)/third_party/node/deps/uv/include',
+             ],
+             'defines': [
+                 'WEBKIT_IMPLEMENTATION=1',

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html id="t" i18n-values="dir:textdirection;" class="active">
+<head>
+<title>About heX</title>
+<link href="version.css" rel="stylesheet" type="text/css" />
+<script src="version.js"></script>
+</head>
+
+<body class="active">
+  <div id="before"></div>
+  <div id="outer">
+    <div class="left"></div>
+    <div class="middle">
+      <div id="middle">
+        <div id="title_bar"><span id="system_icon" class="icon"></span> <span class="title">About heX</span></div>
+        <div id="control_bar">
+          <button id="close" class="control_icon" href="javascript:void 0;"><span>close</span></button>
+          <button id="maximize" class="control_icon" href="javascript:void 0;"><span>maximize</span></button>
+          <button id="minimize" class="control_icon" href="javascript:void 0;"><span>minimize</span></button>
+        </div>
+        <div id="logo">
+          <div id="company"><img src="hex_logo.png" /></div>
+          <div id="copyright">Copyright &copy; $$YEAR$$ NetEase Youdao Inc. and other heX contributors.<br/>All rights reserved.<br/><a href="chrome://license">license</a> | <a href="chrome://credits">credits</a></div>
+        </div>
+        <table id="inner" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td class="label" valign="top">heX</td>
+            <td class="value">$$HEX$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">Node.js</td>
+            <td class="value">$$NODE$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">CEF</td>
+            <td class="value">$$CEF$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">Chromium</td>
+            <td class="value">$$CHROMIUM$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">OS</td>
+            <td class="value">$$OS$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">Blink</td>
+            <td class="value">$$WEBKIT$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">V8</td>
+            <td class="value">$$JAVASCRIPT$$</td>
+          </tr>
+            <tr><td class="label" valign="top">Flash</td>
+            <td class="value" id="flash">$$FLASH$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">User Agent</td>
+            <td class="value">$$USERAGENT$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">Command Line</td>
+            <td class="value">$$COMMANDLINE$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">Module Path</td>
+            <td class="value">$$MODULEPATH$$</td>
+          </tr>
+          <tr>
+            <td class="label" valign="top">Cache Path</td>
+            <td class="value">$$CACHEPATH$$</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <div class="right"></div>
+  </div>
+  <div id="after"></div>
+</body>
+<script>
+'use strict';
+(function () {
+
+var titleBar = new TitleBar('title_bar');
+titleBar.areaElementSelectors = {
+  'include': {
+    '#company': document.querySelector("#company"),
+    'this': titleBar.object
+  },
+  'exclude': {
+    'this': document.querySelector("#system_icon")
+  }
+};
+
+var controlBar = new ControlBar('control_bar');
+controlBar.maximized = 'maximized';
+controlBar.titleBar = titleBar;
+
+var minimizeButton = new ControlButton('minimize', hex.MINIMIZE, 'control_icon');
+var maximizeButton = new ControlButton('maximize', hex.MAXIMIZE, 'control_icon');
+var closeButton = new ControlButton('close', hex.CLOSE, 'control_icon');
+minimizeButton.hover = 'hover';
+minimizeButton.pressed = 'pressed';
+minimizeButton.controlBar = controlBar;
+minimizeButton.titleBar = titleBar;
+minimizeButton.initializeEvent();
+maximizeButton.hover = 'hover';
+maximizeButton.pressed = 'pressed';
+maximizeButton.maximized = 'maximized';
+maximizeButton.restore = 'restore';
+maximizeButton.controlBar = controlBar;
+maximizeButton.titleBar = titleBar;
+maximizeButton.initializeEvent();
+closeButton.hover = 'hover';
+closeButton.pressed = 'pressed';
+closeButton.controlBar = controlBar;
+closeButton.titleBar = titleBar;
+closeButton.initializeEvent();
+
+})();
+</script>
+</html>

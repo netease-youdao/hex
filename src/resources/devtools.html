@@ -1,0 +1,143 @@
+<html>
+<head>
+<title>Inspectable pages for heX</title>
+<style>
+body {
+  background-color: rgb(245, 245, 245);
+  font-family: Helvetica, Arial, sans-serif;
+  text-shadow: rgba(255, 255, 255, 0.496094) 0px 1px 0px;
+}
+
+#caption {
+  text-align: left;
+  color: black;
+  font-size: 16px;
+  margin-top: 30px;
+  margin-bottom: 0px;
+  margin-left: 70px;
+  height: 20px;
+}
+
+#items {
+  display: -webkit-box;
+  -webkit-box-orient: horizontal;
+  -webkit-box-lines: multiple;
+  margin-left: 60px;
+  margin-right: 60px;
+}
+
+.frontend_ref {
+  color: black;
+  text-decoration: initial;
+}
+
+.thumbnail {
+  height: 132px;
+  width: 212px;
+  background-attachment: scroll;
+  background-origin: padding-box;
+  background-repeat: no-repeat;
+  border: 4px solid rgba(184, 184, 184, 1);
+  border-radius: 5px;
+  -webkit-transition-property: background-color, border-color;
+  -webkit-transition: background-color 0.15s, 0.15s;
+  -webkit-transition-delay: 0, 0;
+}
+
+.thumbnail:hover {
+  background-color: rgba(242, 242, 242, 1);
+  border-color: rgba(110, 116, 128, 1);
+  color: black;
+}
+
+.thumbnail.connected {
+  opacity: 0.5;
+}
+
+.thumbnail.connected:hover {
+  border-color: rgba(184, 184, 184, 1);
+  color: rgb(110, 116, 128);
+}
+
+.item {
+  display: inline-block;
+  margin: 5px;
+  margin-top: 15px;
+  height: 162px;
+  width: 222px;
+  vertical-align: top;
+}
+
+.text {
+  text-align: left;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  background: no-repeat 0;
+  background-size: 16px;
+  padding: 2px 0px 0px 20px;
+  margin: 4px 0px 0px 4px;
+}
+</style>
+
+<script>
+function onLoad() {
+  var tabs_list_request = new XMLHttpRequest();
+  tabs_list_request.open("GET", "/json/list?t=" + new Date().getTime(), true);
+  tabs_list_request.onreadystatechange = onReady;
+  tabs_list_request.send();
+}
+
+function onReady() {
+  if(this.readyState == 4 && this.status == 200) {
+    if(this.response != null)
+      var responseJSON = JSON.parse(this.response);
+      for (var i = 0; i < responseJSON.length; ++i)
+        appendItem(responseJSON[i]);
+  }
+}
+
+function appendItem(item_object) {
+  var frontend_ref;
+  if (item_object.devtoolsFrontendUrl) {
+    frontend_ref = document.createElement("a");
+    frontend_ref.href = item_object.devtoolsFrontendUrl;
+    frontend_ref.title = item_object.title;
+  } else {
+    frontend_ref = document.createElement("div");
+    frontend_ref.title = "The tab already has an active debug session";
+  }
+  frontend_ref.className = "frontend_ref";
+
+  var thumbnail = document.createElement("div");
+  thumbnail.className = item_object.devtoolsFrontendUrl ?
+                        "thumbnail" : "thumbnail connected";
+  thumbnail.style.cssText = "background-image:url(" +
+                        item_object.thumbnailUrl +
+                        ")";
+  frontend_ref.appendChild(thumbnail);
+
+  var text = document.createElement("div");
+  if (item_object.title)
+    text.innerText = item_object.title;
+  else
+    text.innerText = "(untitled tab)";
+  text.style.cssText = "background-image:url(" +
+                       item_object.faviconUrl + ")";
+  frontend_ref.appendChild(text);
+
+  var item = document.createElement("p");
+  item.appendChild(frontend_ref);
+
+  document.getElementById("items").appendChild(item);
+}
+</script>
+</head>
+<body onload='onLoad()'>
+  <div id='caption'>Inspectable pages</div>
+  <div id='items'>
+  </div>
+  <hr>
+</body>
+</html>

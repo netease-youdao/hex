@@ -1,0 +1,1232 @@
+Index: patch/patches/gritsettings.patch
+===================================================================
+--- patch/patches/gritsettings.patch	(revision 1450)
++++ patch/patches/gritsettings.patch	(working copy)
+@@ -1,8 +1,8 @@
+ Index: resource_ids
+ ===================================================================
+---- resource_ids	(revision 149431)
++--- resource_ids	(revision 220934)
+ +++ resource_ids	(working copy)
+-@@ -16,6 +16,12 @@
++@@ -16,6 +16,15 @@
+  {
+    "SRCDIR": "../..",
+  
+@@ -12,6 +12,9 @@
+ +  "cef/libcef/resources/cef_strings.grd": {
+ +    "messages": [28000],
+ +  },
+++  "hex/src/resources/hex_resources.grd": {
+++    "includes": [60600],
+++  },
+    "chrome/browser/browser_resources.grd": {
+      "includes": [500],
+      "structures": [750],
+Index: cef_paths.gypi
+===================================================================
+--- cef_paths.gypi	(revision 1450)
++++ cef_paths.gypi	(working copy)
+@@ -439,5 +439,13 @@
+       'libcef_dll/ctocpp/zip_reader_ctocpp.cc',
+       'libcef_dll/ctocpp/zip_reader_ctocpp.h',
+     ],
++    # For heX
++    'hex_autogen_cpp_includes': [
++      '../hex/include/hex.h',
++      '../hex/include/hex_version.h',
++    ],
++    'hex_autogen_capi_includes': [
++      '../hex/include/hex_capi.h',
++    ],
+   },
+ }
+Index: libcef_dll/wrapper/libcef_dll_wrapper.cc
+===================================================================
+--- libcef_dll/wrapper/libcef_dll_wrapper.cc	(revision 1450)
++++ libcef_dll/wrapper/libcef_dll_wrapper.cc	(working copy)
+@@ -105,6 +105,9 @@
+ #include "libcef_dll/ctocpp/web_plugin_info_ctocpp.h"
+ #include "libcef_dll/ctocpp/xml_reader_ctocpp.h"
+ #include "libcef_dll/ctocpp/zip_reader_ctocpp.h"
++// For heX
++#include "hex/include/hex.h"
++#include "hex/include/hex_capi.h"
+ 
+ // Define used to facilitate parsing.
+ #define CEF_GLOBAL
+Index: libcef_dll/ctocpp/browser_process_handler_ctocpp.cc
+===================================================================
+--- libcef_dll/ctocpp/browser_process_handler_ctocpp.cc	(revision 1450)
++++ libcef_dll/ctocpp/browser_process_handler_ctocpp.cc	(working copy)
+@@ -61,7 +61,23 @@
+       CefListValueCppToC::Wrap(extra_info));
+ }
+ 
++#if defined(OS_WIN)
++bool CefBrowserProcessHandlerCToCpp::OnPreTranslateMessage(
++    CefEventHandle os_event) {
++  if (CEF_MEMBER_MISSING(struct_, on_pre_translate_message))
++    return false;
+ 
++  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
++
++  // Execute
++  int _retval = struct_->on_pre_translate_message(struct_, os_event);
++
++  // Return type: bool
++  return _retval?true:false;
++}
++#endif  // OS_WIN
++
++
+ #ifndef NDEBUG
+ template<> long CefCToCpp<CefBrowserProcessHandlerCToCpp,
+     CefBrowserProcessHandler, cef_browser_process_handler_t>::DebugObjCt = 0;
+Index: libcef_dll/ctocpp/browser_process_handler_ctocpp.h
+===================================================================
+--- libcef_dll/ctocpp/browser_process_handler_ctocpp.h	(revision 1450)
++++ libcef_dll/ctocpp/browser_process_handler_ctocpp.h	(working copy)
+@@ -39,6 +39,9 @@
+       CefRefPtr<CefCommandLine> command_line) OVERRIDE;
+   virtual void OnRenderProcessThreadCreated(
+       CefRefPtr<CefListValue> extra_info) OVERRIDE;
++#if defined(OS_WIN)
++  virtual bool OnPreTranslateMessage(CefEventHandle os_event) OVERRIDE;
++#endif  // OS_WIN
+ };
+ 
+ #endif  // BUILDING_CEF_SHARED
+Index: libcef_dll/ctocpp/browser_host_ctocpp.cc
+===================================================================
+--- libcef_dll/ctocpp/browser_host_ctocpp.cc	(revision 1450)
++++ libcef_dll/ctocpp/browser_host_ctocpp.cc	(working copy)
+@@ -63,6 +63,16 @@
+ 
+ // VIRTUAL METHODS - Body may be edited by hand.
+ 
++void CefBrowserHostCToCpp::SetTransparent(bool transparent) {
++  if (CEF_MEMBER_MISSING(struct_, set_transparent))
++    return;
++
++  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
++
++  // Execute
++  struct_->set_transparent(struct_, transparent);
++}
++
+ CefRefPtr<CefBrowser> CefBrowserHostCToCpp::GetBrowser() {
+   if (CEF_MEMBER_MISSING(struct_, get_browser))
+     return NULL;
+Index: libcef_dll/ctocpp/browser_host_ctocpp.h
+===================================================================
+--- libcef_dll/ctocpp/browser_host_ctocpp.h	(revision 1450)
++++ libcef_dll/ctocpp/browser_host_ctocpp.h	(working copy)
+@@ -36,6 +36,8 @@
+           str) {}
+   virtual ~CefBrowserHostCToCpp() {}
+ 
++  // For heX
++  virtual void SetTransparent(bool transparent) OVERRIDE;
+   // CefBrowserHost methods
+   virtual CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
+   virtual void ParentWindowWillClose() OVERRIDE;
+Index: libcef_dll/cpptoc/browser_process_handler_cpptoc.cc
+===================================================================
+--- libcef_dll/cpptoc/browser_process_handler_cpptoc.cc	(revision 1450)
++++ libcef_dll/cpptoc/browser_process_handler_cpptoc.cc	(working copy)
+@@ -65,7 +65,26 @@
+       CefListValueCToCpp::Wrap(extra_info));
+ }
+ 
++#if defined(OS_WIN)
++int CEF_CALLBACK browser_process_handler_on_pre_translate_message(
++    struct _cef_browser_process_handler_t* self, cef_event_handle_t os_event) {
++  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+ 
++  DCHECK(self);
++  if (!self)
++    return 0;
++
++  // Execute
++  bool _retval = CefBrowserProcessHandlerCppToC::Get(
++      self)->OnPreTranslateMessage(
++      os_event);
++
++  // Return type: bool
++  return _retval;
++}
++#endif  // OS_WIN
++
++
+ // CONSTRUCTOR - Do not edit by hand.
+ 
+ CefBrowserProcessHandlerCppToC::CefBrowserProcessHandlerCppToC(
+@@ -78,6 +97,10 @@
+       browser_process_handler_on_before_child_process_launch;
+   struct_.struct_.on_render_process_thread_created =
+       browser_process_handler_on_render_process_thread_created;
++#if defined(OS_WIN)
++  struct_.struct_.on_pre_translate_message =
++      browser_process_handler_on_pre_translate_message;
++#endif  // OS_WIN
+ }
+ 
+ #ifndef NDEBUG
+Index: libcef_dll/cpptoc/browser_host_cpptoc.cc
+===================================================================
+--- libcef_dll/cpptoc/browser_host_cpptoc.cc	(revision 1450)
++++ libcef_dll/cpptoc/browser_host_cpptoc.cc	(working copy)
+@@ -97,6 +97,18 @@
+ 
+ // MEMBER FUNCTIONS - Body may be edited by hand.
+ 
++void CEF_CALLBACK browser_host_set_transparent(struct _cef_browser_host_t* self,
++    int transparent) {
++  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
++
++  DCHECK(self);
++  if (!self)
++    return;
++
++  // Execute
++  CefBrowserHostCppToC::Get(self)->SetTransparent(transparent?true:false);
++}
++
+ cef_browser_t* CEF_CALLBACK browser_host_get_browser(
+     struct _cef_browser_host_t* self) {
+   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+@@ -571,6 +583,7 @@
+ 
+ CefBrowserHostCppToC::CefBrowserHostCppToC(CefBrowserHost* cls)
+     : CefCppToC<CefBrowserHostCppToC, CefBrowserHost, cef_browser_host_t>(cls) {
++  struct_.struct_.set_transparent = browser_host_set_transparent;
+   struct_.struct_.get_browser = browser_host_get_browser;
+   struct_.struct_.parent_window_will_close =
+       browser_host_parent_window_will_close;
+Index: libcef_dll/libcef_dll.cc
+===================================================================
+--- libcef_dll/libcef_dll.cc	(revision 1450)
++++ libcef_dll/libcef_dll.cc	(working copy)
+@@ -104,6 +104,9 @@
+ #include "libcef_dll/ctocpp/web_plugin_info_visitor_ctocpp.h"
+ #include "libcef_dll/ctocpp/web_plugin_unstable_callback_ctocpp.h"
+ #include "libcef_dll/ctocpp/write_handler_ctocpp.h"
++// For heX
++#include "hex/include/hex.h"
++#include "hex/include/hex_capi.h"
+ 
+ 
+ // GLOBAL FUNCTIONS - Body may be edited by hand.
+Index: include/cef_base.h
+===================================================================
+--- include/cef_base.h	(revision 1450)
++++ include/cef_base.h	(working copy)
+@@ -42,6 +42,8 @@
+ #include "include/internal/cef_build.h"
+ #include "include/internal/cef_ptr.h"
+ #include "include/internal/cef_types_wrappers.h"
++// For heX
++#include "hex/include/hex_types_wrappers.h"
+ 
+ // Bring in platform-specific definitions.
+ #if defined(OS_WIN)
+Index: include/cef_browser_process_handler.h
+===================================================================
+--- include/cef_browser_process_handler.h	(revision 1450)
++++ include/cef_browser_process_handler.h	(working copy)
+@@ -77,6 +77,16 @@
+   /*--cef()--*/
+   virtual void OnRenderProcessThreadCreated(
+       CefRefPtr<CefListValue> extra_info) {}
++
++#if defined(OS_WIN)
++  ///
++  // Filter window messages before they are dispatched to the Windows functions
++  // TranslateMessage and DispatchMessage. The default implementation performs
++  // accelerator-key translation.
++  ///
++  /*--cef()--*/
++  virtual bool OnPreTranslateMessage(CefEventHandle os_event) { return false; }
++#endif  // OS_WIN
+ };
+ 
+ #endif  // CEF_INCLUDE_CEF_BROWSER_PROCESS_HANDLER_H_
+Index: include/cef_browser.h
+===================================================================
+--- include/cef_browser.h	(revision 1450)
++++ include/cef_browser.h	(working copy)
+@@ -253,6 +253,12 @@
+       CefRefPtr<CefRequestContext> request_context);
+ 
+   ///
++  // Set the browser transparent or not.
++  ///
++  /*--cef()--*/
++  virtual void SetTransparent(bool transparent) =0;
++
++  ///
+   // Returns the hosted browser object.
+   ///
+   /*--cef()--*/
+Index: include/capi/cef_browser_process_handler_capi.h
+===================================================================
+--- include/capi/cef_browser_process_handler_capi.h	(revision 1450)
++++ include/capi/cef_browser_process_handler_capi.h	(working copy)
+@@ -84,6 +84,17 @@
+   void (CEF_CALLBACK *on_render_process_thread_created)(
+       struct _cef_browser_process_handler_t* self,
+       struct _cef_list_value_t* extra_info);
++
++#if defined(OS_WIN)
++  ///
++  // Filter window messages before they are dispatched to the Windows functions
++  // TranslateMessage and DispatchMessage. The default implementation performs
++  // accelerator-key translation
++  ///
++  int (CEF_CALLBACK *on_pre_translate_message)(
++      struct _cef_browser_process_handler_t* self,
++      cef_event_handle_t os_event);
++#endif  // OS_WIN
+ } cef_browser_process_handler_t;
+ 
+ 
+Index: include/capi/cef_browser_capi.h
+===================================================================
+--- include/capi/cef_browser_capi.h	(revision 1450)
++++ include/capi/cef_browser_capi.h	(working copy)
+@@ -211,6 +211,12 @@
+   cef_base_t base;
+ 
+   ///
++  // Set the browser transparent or not.
++  ///
++  void (CEF_CALLBACK *set_transparent)(struct _cef_browser_host_t* self,
++      int transparent);
++
++  ///
+   // Returns the hosted browser object.
+   ///
+   struct _cef_browser_t* (CEF_CALLBACK *get_browser)(
+Index: cef.gyp
+===================================================================
+--- cef.gyp	(revision 1450)
++++ cef.gyp	(working copy)
+@@ -6,7 +6,7 @@
+   'variables': {
+     'pkg-config': 'pkg-config',
+     'chromium_code': 1,
+-    'grit_out_dir': '<(SHARED_INTERMEDIATE_DIR)/cef',
++    'grit_out_dir': '<(SHARED_INTERMEDIATE_DIR)/hex',
+     'about_credits_file': '<(SHARED_INTERMEDIATE_DIR)/about_credits.html',
+     'revision': '<!(python tools/revision.py)',
+     # Need to be creative to match dylib version formatting requirements.
+@@ -461,6 +461,8 @@
+       'msvs_guid': 'C13650D5-CF1A-4259-BE45-B1EBA6280E47',
+       'dependencies': [
+         'libcef_static',
++        # For heX
++        '<(DEPTH)/hex/hex.gyp:hex',
+       ],
+       'defines': [
+         'BUILDING_CEF_SHARED',
+@@ -472,7 +474,19 @@
+         '<@(includes_common)',
+         '<@(includes_capi)',
+         '<@(libcef_sources_common)',
++        # For heX
++        '<@(hex_includes_common)',
++        '<@(hex_libcef_sources_common)',
+       ],
++      # For heX
++      'msvs_settings': {
++        'VCLinkerTool': {
++          'DelayLoadDLLs': [
++            'node.dll',
++            'libuv.dll',
++          ],
++        },
++      },
+       'xcode_settings': {
+         # Default path that will be changed by install_name_tool in dependent targets.
+         'INSTALL_PATH': '@executable_path',
+@@ -552,6 +566,9 @@
+         '<@(includes_capi)',
+         '<@(includes_wrapper)',
+         '<@(libcef_dll_wrapper_sources_common)',
++        # For heX
++        '<@(hex_includes_common)',
++        '<@(hex_libcef_dll_wrapper_sources_common)',
+       ],
+       'conditions': [
+         [ 'OS=="linux" or OS=="freebsd" or OS=="openbsd"', {
+@@ -673,6 +690,8 @@
+         '<(DEPTH)/webkit/webkit_resources.gyp:webkit_resources',
+         'cef_locales',
+         'cef_resources',
++        # For heX
++        '<(DEPTH)/hex/hex.gyp:hex_resources',
+       ],
+       'variables': {
+         'repack_path': '<(DEPTH)/tools/grit/grit/format/repack.py',
+@@ -689,7 +708,8 @@
+               '<(SHARED_INTERMEDIATE_DIR)/ui/ui_resources/ui_resources_100_percent.pak',
+               '<(SHARED_INTERMEDIATE_DIR)/webkit/blink_resources.pak',
+               '<(SHARED_INTERMEDIATE_DIR)/webkit/webkit_resources_100_percent.pak',
+-              '<(grit_out_dir)/cef_resources.pak',
++              # For heX
++              '<(grit_out_dir)/hex_resources.pak',
+             ],
+           },
+           'inputs': [
+@@ -714,6 +734,8 @@
+               '<(SHARED_INTERMEDIATE_DIR)/webkit/grit/blink_resources.h',
+               '<(SHARED_INTERMEDIATE_DIR)/webkit/grit/webkit_resources.h',
+               '<(grit_out_dir)/grit/cef_resources.h',
++              # For heX
++              '<(DEPTH)/hex/include/hex_pack_resources.h',
+             ],
+           },
+           'inputs': [
+@@ -760,8 +782,16 @@
+       'target_name': 'libcef_static',
+       'type': 'static_library',
+       'msvs_guid': 'FA39524D-3067-4141-888D-28A86C66F2B9',
++      # For heX
++      'msvs_disabled_warnings': [
++        4800, 4067
++      ],
+       'defines': [
+         'BUILDING_CEF_SHARED',
++        # For heX
++        'BUILDING_HEX_SHARED',
++        'HEX_IMPLEMENTATION',
++        'HEXCLIENT',
+       ],
+       'include_dirs': [
+         '.',
+@@ -772,6 +802,11 @@
+         '<(SHARED_INTERMEDIATE_DIR)/content/browser/tracing',
+         '<(SHARED_INTERMEDIATE_DIR)/ui/ui_strings',
+         '<(SHARED_INTERMEDIATE_DIR)/webkit',
++        # For heX
++        '<(DEPTH)/hex/src',
++        '<(DEPTH)/third_party/jsoncpp/source/include',
++        '<(DEPTH)/third_party/node/src',
++        '<(DEPTH)/third_party/node/deps/uv/include',
+       ],
+       'dependencies': [
+         '<(DEPTH)/base/base.gyp:base',
+@@ -805,6 +840,9 @@
+         '<(DEPTH)/webkit/support/webkit_support.gyp:glue',
+         # Necessary to generate the grit include files.
+         'cef_pak',
++        # For heX
++        '<(DEPTH)/third_party/node/node.gyp:node',
++        '<(DEPTH)/third_party/node/deps/uv/uv.gyp:libuv',
+       ],
+       'sources': [
+         '<@(includes_common)',
+@@ -1004,6 +1042,20 @@
+         # Include sources for the loadtimes V8 extension.
+         '<(DEPTH)/chrome/renderer/loadtimes_extension_bindings.h',
+         '<(DEPTH)/chrome/renderer/loadtimes_extension_bindings.cc',
++        # For heX
++        '<(DEPTH)/hex/src/customized.h',
++        '<(DEPTH)/hex/src/customized.cc',
++        '<(DEPTH)/hex/src/hex_switches.cc',
++        '<(DEPTH)/hex/src/cef/hex_context.cc',
++        '<(DEPTH)/hex/src/cef/hex_browser_message_loop.cc',
++        '<(DEPTH)/hex/src/cef/hex_browser_host_impl.cc',
++        '<(DEPTH)/hex/src/hex_global.cc',
++        '<@(hex_includes_common)',
++        '<(DEPTH)/hex/src/node_isolate.cc',
++        #'<(DEPTH)/hex/src/hex_use_node.h',
++        #'<(DEPTH)/hex/src/hex_use_node.cc',
++        '<(DEPTH)/hex/src/init_node.cc',
++        '<(DEPTH)/hex/src/init_node.h',
+       ],
+       'conditions': [
+         ['OS=="win"', {
+@@ -1024,7 +1076,14 @@
+             '<(DEPTH)/ui/views/controls/menu/menu_listener.h',
+             '<(DEPTH)/ui/views/controls/menu/native_menu_win.cc',
+             '<(DEPTH)/ui/views/controls/menu/native_menu_win.h',
++            # For heX
++            '<(DEPTH)/hex/src/customized_win.cpp',
++            '<(DEPTH)/hex/src/cef/hex_browser_host_impl_win.cc',
+           ],
++          # For heX
++          'include_dirs!': [
++            '<(DEPTH)/third_party/WebKit/Source/wtf/os-win32',
++          ],
+         }],
+         [ 'OS=="mac"', {
+           'sources': [
+Index: cef_paths2.gypi
+===================================================================
+--- cef_paths2.gypi	(revision 1450)
++++ cef_paths2.gypi	(working copy)
+@@ -29,10 +29,17 @@
+       'include/internal/cef_types.h',
+       'include/internal/cef_types_wrappers.h',
+       '<@(autogen_cpp_includes)',
++      '<@(hex_autogen_cpp_includes)',
+     ],
++    # For heX
++    'hex_includes_common': [
++      '../hex/include/hex_types.h',
++      '../hex/include/hex_types_wrappers.h',
++    ],
+     'includes_capi': [
+       'include/capi/cef_base_capi.h',
+       '<@(autogen_capi_includes)',
++      '<@(hex_autogen_capi_includes)',
+     ],
+     'includes_wrapper': [
+       'include/wrapper/cef_byte_read_handler.h',
+@@ -64,6 +71,10 @@
+       'libcef_dll/transfer_util.h',
+       '<@(autogen_library_side)',
+     ],
++    # For heX
++    'hex_libcef_sources_common': [
++      '../hex/src/hex_dll.cc',
++    ],
+     'libcef_dll_wrapper_sources_common': [
+       'libcef_dll/cef_logging.h',
+       'libcef_dll/cpptoc/base_cpptoc.h',
+@@ -80,6 +91,10 @@
+       'libcef_dll/wrapper/libcef_dll_wrapper2.cc',
+       '<@(autogen_client_side)',
+     ],
++    # For heX
++    'hex_libcef_dll_wrapper_sources_common': [
++      '../hex/src/hex_dll_wrapper.cc',
++    ],
+     'cefclient_bundle_resources_common': [
+       'tests/cefclient/res/binding.html',
+       'tests/cefclient/res/dialogs.html',
+Index: tools/repack_locales.py
+===================================================================
+--- tools/repack_locales.py	(revision 1450)
++++ tools/repack_locales.py	(working copy)
+@@ -77,7 +77,7 @@
+                 'app_locale_settings_%s.pak' % locale))
+ 
+   #e.g. '<(SHARED_INTERMEDIATE_DIR)/cef/cef_strings_da.pak'
+-  inputs.append(os.path.join(SHARE_INT_DIR, 'cef',
++  inputs.append(os.path.join(SHARE_INT_DIR, 'hex',
+                 'cef_strings_%s.pak' % locale))
+ 
+   return inputs
+Index: tools/revision.py
+===================================================================
+--- tools/revision.py	(revision 1450)
++++ tools/revision.py	(working copy)
+@@ -12,10 +12,10 @@
+     sys.stderr.write('This file cannot be loaded as a module!')
+     sys.exit()
+ 
+-if os.path.exists(os.path.join('.', '.svn')):
+-  sys.stdout.write(svn.get_revision())
+-elif os.path.exists(os.path.join('.', '.git')):
+-  sys.stdout.write(git.get_svn_revision())
++if os.path.exists(os.path.join('../cef', '.svn')):
++  sys.stdout.write(svn.get_revision(os.path.join('../cef')))
++elif os.path.exists(os.path.join('../cef', '.git')):
++  sys.stdout.write(git.get_svn_revision(os.path.join('../cef')))
+ else:
+   raise Exception('Not a valid checkout')
+ 
+Index: libcef/browser/browser_message_loop.h
+===================================================================
+--- libcef/browser/browser_message_loop.h	(revision 1450)
++++ libcef/browser/browser_message_loop.h	(working copy)
+@@ -8,6 +8,8 @@
+ 
+ #include "base/basictypes.h"
+ #include "base/message_loop/message_loop.h"
++// For heX
++#include "libcef/browser/browser_host_impl.h"
+ 
+ // Class used to process events on the current message loop.
+ class CefBrowserMessageLoop : public base::MessageLoopForUI {
+@@ -26,7 +28,18 @@
+   // Run the UI message loop.
+   void RunMessageLoop();
+ 
++  // For heX
++#if defined(OS_WIN)
++  virtual bool PreTranslateMessage(const MSG& msg);
++#endif  // OS_WIN
++  virtual void UvRun();
++  void SetBrowser(CefBrowserHostImpl* browser);
++  void RemoveBrowser();
++  CefBrowserHostImpl* GetBrowser() const { return browser_; }
++
+  private:
++  // For heX
++  CefBrowserHostImpl* browser_;
+   DISALLOW_COPY_AND_ASSIGN(CefBrowserMessageLoop);
+ };
+ 
+Index: libcef/browser/devtools_delegate.cc
+===================================================================
+--- libcef/browser/devtools_delegate.cc	(revision 1450)
++++ libcef/browser/devtools_delegate.cc	(working copy)
+@@ -20,11 +20,14 @@
+ #include "content/public/browser/render_view_host.h"
+ #include "content/public/common/content_switches.h"
+ #include "content/public/common/url_constants.h"
+-#include "grit/cef_resources.h"
++#include "grit/hex_resources.h"
+ #include "net/socket/tcp_listen_socket.h"
+ #include "ui/base/layout.h"
+ #include "ui/base/resource/resource_bundle.h"
+ 
++// For heX
++#include "hex/include/hex_pack_resources.h"
++
+ // CefDevToolsBindingHandler
+ 
+ CefDevToolsBindingHandler::CefDevToolsBindingHandler() {
+@@ -135,7 +138,7 @@
+ 
+ std::string CefDevToolsDelegate::GetDiscoveryPageHTML() {
+   return CefContentClient::Get()->GetDataResource(
+-      IDR_CEF_DEVTOOLS_DISCOVERY_PAGE, ui::SCALE_FACTOR_NONE).as_string();
++      IDR_HEX_DEVTOOLS, ui::SCALE_FACTOR_NONE).as_string();
+ }
+ 
+ bool CefDevToolsDelegate::BundlesFrontendResources() {
+Index: libcef/browser/context.h
+===================================================================
+--- libcef/browser/context.h	(revision 1450)
++++ libcef/browser/context.h	(working copy)
+@@ -19,6 +19,9 @@
+ #include "content/public/browser/notification_observer.h"
+ #include "content/public/browser/notification_registrar.h"
+ 
++// For heX
++#include "hex/include/hex_types_wrappers.h"
++
+ namespace base {
+ class WaitableEvent;
+ }
+@@ -63,6 +66,10 @@
+ 
+   CefTraceSubscriber* GetTraceSubscriber();
+ 
++  // For heX
++  const HeXSettings& hex_settings() const { return hex_settings_; }
++  void SetHeXSettings(const HeXSettings& hex_settings);
++
+  private:
+   void OnContextInitialized();
+ 
+@@ -88,6 +95,8 @@
+   CefSettings settings_;
+   base::FilePath cache_path_;
+   base::ScopedTempDir cache_temp_dir_;
++  // For heX
++  HeXSettings hex_settings_;
+ 
+   scoped_ptr<CefMainDelegate> main_delegate_;
+   scoped_ptr<content::ContentMainRunner> main_runner_;
+Index: libcef/browser/chrome_scheme_handler.cc
+===================================================================
+--- libcef/browser/chrome_scheme_handler.cc	(revision 1450)
++++ libcef/browser/chrome_scheme_handler.cc	(working copy)
+@@ -30,13 +30,19 @@
+ #include "content/browser/net/view_http_cache_job_factory.h"
+ #include "content/browser/net/view_blob_internals_job_factory.h"
+ #include "content/public/common/url_constants.h"
+-#include "grit/cef_resources.h"
++#include "grit/hex_resources.h"
+ #include "grit/tracing_resources.h"
+ #include "ipc/ipc_channel.h"
+ #include "net/url_request/url_request.h"
+ #include "v8/include/v8.h"
+ #include "webkit/common/user_agent/user_agent_util.h"
+ 
++// For heX
++#include "hex/include/hex_version.h"
++#include "hex/include/hex_pack_resources.h"
++#include "hex/src/hex_use_node.h"
++#include "third_party/node/src/node_version.h"
++
+ namespace scheme {
+ 
+ const char kChromeURL[] = "chrome://";
+@@ -209,7 +215,7 @@
+         handled = OnTracing(path, action);
+         break;
+       case CHROME_VERSION:
+-        handled = OnVersion(action);
++        handled = OnVersion(path, action);
+         break;
+       default:
+         break;
+@@ -227,19 +233,19 @@
+ 
+   bool OnCredits(const std::string& path, Action* action) {
+     if (path == "credits.js") {
+-      action->resource_id = IDR_CEF_CREDITS_JS;
++      action->resource_id = IDR_HEX_CREDITS_JS;
+     } else if (path == "swiftshader.jpg") {
+-      action->resource_id = IDR_CEF_CREDITS_SWIFTSHADER_JPG;
++      action->resource_id = IDR_HEX_CREDITS_SWIFTSHADER_JPG;
+     } else {
+       action->mime_type = "text/html";
+-      action->resource_id = IDR_CEF_CREDITS_HTML;
++      action->resource_id = IDR_HEX_CREDITS_HTML;
+     }
+     return true;
+   }
+ 
+   bool OnLicense(Action* action) {
+     base::StringPiece piece = CefContentClient::Get()->GetDataResource(
+-          IDR_CEF_LICENSE_TXT, ui::SCALE_FACTOR_NONE);
++          IDR_HEX_LICENSE_TXT, ui::SCALE_FACTOR_NONE);
+     if (piece.empty()) {
+       NOTREACHED() << "Failed to load license txt resource.";
+       return false;
+@@ -266,14 +272,47 @@
+     return true;
+   }
+ 
+-  bool OnVersion(Action* action) {
++  bool OnVersion(const std::string& path, Action* action) {
+     base::StringPiece piece = CefContentClient::Get()->GetDataResource(
+-          IDR_CEF_VERSION_HTML, ui::SCALE_FACTOR_NONE);
++          IDR_HEX_VERSION_HTML, ui::SCALE_FACTOR_NONE);
+     if (piece.empty()) {
+       NOTREACHED() << "Failed to load version html resource.";
+       return false;
+     }
+ 
++    // For heX, show the logo, and other image resources.
++    if (path == "hex_logo.png") {
++      action->resource_id = IDR_HEX_VERSION_LOGO;
++    } else if (path == "close.png") {
++      action->resource_id = IDR_HEX_CLOSE;
++    } else if (path == "close_hover.png") {
++      action->resource_id = IDR_HEX_CLOSE_HOVER;
++    } else if (path == "close_pressed.png") {
++      action->resource_id = IDR_HEX_CLOSE_PRESSED;
++    } else if (path == "minimize.png") {
++      action->resource_id = IDR_HEX_MINIMIZE;
++    } else if (path == "minimize_hover.png") {
++      action->resource_id = IDR_HEX_MINIMIZE_HOVER;
++    } else if (path == "minimize_pressed.png") {
++      action->resource_id = IDR_HEX_MINIMIZE_PRESSED;
++    } else if (path == "maximize.png") {
++      action->resource_id = IDR_HEX_MAXIMIZE;
++    } else if (path == "maximize_hover.png") {
++      action->resource_id = IDR_HEX_MAXIMIZE_HOVER;
++    } else if (path == "maximize_pressed.png") {
++      action->resource_id = IDR_HEX_MAXIMIZE_PRESSED;
++    } else if (path == "restore.png") {
++      action->resource_id = IDR_HEX_RESTORE;
++    } else if (path == "restore_hover.png") {
++      action->resource_id = IDR_HEX_RESTORE_HOVER;
++    } else if (path == "restore_pressed.png") {
++      action->resource_id = IDR_HEX_RESTORE_PRESSED;
++    } else if (path == "version.css") {
++      action->resource_id = IDR_HEX_VERSION_CSS;
++    } else if (path == "version.js") {
++      action->resource_id = IDR_HEX_VERSION_JS;
++    }
++
+     TemplateParser parser;
+     parser.Add("YEAR", MAKE_STRING(COPYRIGHT_YEAR));
+     parser.Add("CEF",
+@@ -298,11 +337,47 @@
+     parser.Add("COMMANDLINE", GetCommandLine());
+     parser.Add("MODULEPATH", GetModulePath());
+     parser.Add("CACHEPATH", CefString(CefContext::Get()->cache_path().value()));
++    // For heX
++    parser.Add("HEX",
++        base::StringPrintf("%d.%d.%d-%s",
++            HEX_VERSION_MAJOR,
++            HEX_VERSION_MINOR,
++            HEX_VERSION_BUILD,
++            HEX_REVISION));
++    if (hex::CanUseNode()) {
++      parser.Add("NODE", base::StringPrintf("%s", NODE_VERSION_STRING));
++    } else {
++      parser.Add("NODE", base::StringPrintf("%s", "Not found"));
++    }
+ 
+     std::string tmpl = piece.as_string();
+     parser.Parse(&tmpl);
+ 
+-    action->mime_type = "text/html";
++    // For heX
++    switch (action->resource_id) {
++      case IDR_HEX_VERSION_CSS:
++        action->mime_type = "text/css";
++        break;
++      case IDR_HEX_VERSION_JS:
++        action->mime_type = "text/javascript";
++        break;
++      case IDR_HEX_CLOSE:
++      case IDR_HEX_CLOSE_HOVER:
++      case IDR_HEX_CLOSE_PRESSED:
++      case IDR_HEX_MINIMIZE:
++      case IDR_HEX_MINIMIZE_HOVER:
++      case IDR_HEX_MINIMIZE_PRESSED:
++      case IDR_HEX_MAXIMIZE:
++      case IDR_HEX_MAXIMIZE_HOVER:
++      case IDR_HEX_MAXIMIZE_PRESSED:
++      case IDR_HEX_RESTORE:
++      case IDR_HEX_RESTORE_HOVER:
++      case IDR_HEX_RESTORE_PRESSED:
++        action->mime_type = "image/png";
++      default:
++        action->mime_type = "text/html";
++        break;
++    }
+     action->stream =  CefStreamReader::CreateForData(
+         const_cast<char*>(tmpl.c_str()), tmpl.length());
+     action->stream_size = tmpl.length();
+Index: libcef/browser/browser_host_impl.cc
+===================================================================
+--- libcef/browser/browser_host_impl.cc	(revision 1450)
++++ libcef/browser/browser_host_impl.cc	(working copy)
+@@ -443,6 +443,29 @@
+ }
+ 
+ 
++// For heX
++void CefBrowserHostImpl::SetTransparent(bool transparent) {
++  content::WebContents* contents = web_contents();
++  content::RenderViewHost* render_view_host = contents->GetRenderViewHost();
++
++  if (CefContext::Get()->hex_settings().transparent_browser &&
++      render_view_host) {
++    SkBitmap background;
++    background.setConfig(SkBitmap::kARGB_8888_Config, 1, 1);
++    background.allocPixels();
++    if (transparent) {
++      background.eraseARGB(0, 0, 0, 0);
++    } else {
++      background.eraseARGB(255, 255, 255, 255);
++    }
++
++    content::RenderWidgetHostView* view = render_view_host->GetView();
++    if (view)
++      view->SetBackground(background);
++  }
++}
++
++
+ // CefBrowserHost methods.
+ // -----------------------------------------------------------------------------
+ 
+@@ -1110,6 +1133,9 @@
+ 
+   CefContentBrowserClient::Get()->RemoveBrowserInfo(browser_info_);
+   browser_info_->set_browser(NULL);
++
++  // For heX
++  HeXRenderViewDeleted();
+ }
+ 
+ gfx::NativeView CefBrowserHostImpl::GetContentView() const {
+@@ -1787,6 +1813,9 @@
+   browser_info_->add_render_id(render_view_host->GetProcess()->GetID(),
+                                render_view_host->GetRoutingID());
+ 
++  // For heX.
++  HeXRenderViewCreated(render_view_host);
++
+   // Update the DevTools URLs, if any.
+   CefDevToolsDelegate* devtools_delegate =
+       CefContentBrowserClient::Get()->devtools_delegate();
+@@ -1809,6 +1838,9 @@
+ 
+ void CefBrowserHostImpl::RenderViewDeleted(
+     content::RenderViewHost* render_view_host) {
++  // For heX
++  HeXRenderViewDeleted();
++
+   browser_info_->remove_render_id(render_view_host->GetProcess()->GetID(),
+                                   render_view_host->GetRoutingID());
+ 
+@@ -2083,6 +2115,33 @@
+       is_in_onsetfocus_(false),
+       focus_on_editable_field_(false),
+       mouse_cursor_change_disabled_(false),
++      // For heX
++#if defined(OS_WIN)
++      renderer_window_subclassed_(false),
++      browser_window_thunk_(new ATL::CStdCallThunk),
++      renderer_window_thunk_(new ATL::CStdCallThunk),
++      widget_window_thunk_(new ATL::CStdCallThunk),
++      browser_window_handle_(NULL),
++      renderer_window_handle_(NULL),
++      widget_window_handle_(NULL),
++      title_bar_x_(hex::SYSTEMDEFAULT),
++      title_bar_y_(hex::SYSTEMDEFAULT),
++      non_border_x_(hex::SYSTEMDEFAULT),
++      non_border_y_(hex::SYSTEMDEFAULT),
++      system_menu_icon_x_(hex::SYSTEMDEFAULT),
++      system_menu_icon_y_(hex::SYSTEMDEFAULT),
++      popup_position_x_(hex::SYSTEMDEFAULT),
++      popup_position_y_(hex::SYSTEMDEFAULT),
++      popup_size_width_(hex::SYSTEMDEFAULT),
++      popup_size_height_(hex::SYSTEMDEFAULT),
++      min_width_(GET_DEFAULT_VALUE(form_min_width)),
++      min_height_(GET_DEFAULT_VALUE(form_min_height)),
++      max_width_(GET_DEFAULT_VALUE(form_max_width)),
++      max_height_(GET_DEFAULT_VALUE(form_max_height)),
++      parent_form_(NULL),
++      model_dialog_(false),
++      is_doing_system_command_directly_(false),
++#endif  // OS_WIN
+       file_chooser_pending_(false) {
+   DCHECK(!browser_info_->browser().get());
+   browser_info_->set_browser(this);
+Index: libcef/browser/browser_host_impl.h
+===================================================================
+--- libcef/browser/browser_host_impl.h	(revision 1450)
++++ libcef/browser/browser_host_impl.h	(working copy)
+@@ -30,6 +30,27 @@
+ #include "content/public/browser/web_contents_observer.h"
+ #include "content/public/common/file_chooser_params.h"
+ 
++// For heX, use thunk.
++#include "hex/src/hex_shared.h"
++#include "hex/src/default_values.h"
++#if defined(OS_WIN)
++#include <atlstdthunk.h>
++#pragma comment(linker, "/NODEFAULTLIB:atlthunk.lib")
++#include <atlbase.h>
++
++#if (_ATL_VER < 0x0700)
++namespace ATL {
++  inline void * __stdcall __AllocStdCallThunk() {
++    return ::HeapAlloc(::GetProcessHeap(), 0, sizeof(_stdcallthunk));
++  }
++
++  inline void __stdcall __FreeStdCallThunk(void *p) {
++    ::HeapFree(::GetProcessHeap(), 0, p);
++  }
++};  // namespace ATL
++#endif  //(_ATL_VER < 0x0700)
++#endif  // OS_WIN
++
+ namespace content {
+ struct NativeWebKeyboardEvent;
+ }
+@@ -105,6 +126,8 @@
+   // Returns true if window rendering is disabled in CefWindowInfo.
+   static bool IsWindowRenderingDisabled(const CefWindowInfo& info);
+ 
++  // For heX
++  virtual void SetTransparent(bool transparent) OVERRIDE;
+   // CefBrowserHost methods.
+   virtual CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
+   virtual void CloseBrowser(bool force_close) OVERRIDE;
+@@ -269,6 +292,9 @@
+   };
+   DestructionState destruction_state() const { return destruction_state_; }
+ 
++  // For heX, execute uv_run. 
++  void UvRun(int64 frame_id);
++
+  private:
+   // content::WebContentsDelegate methods.
+   virtual content::WebContents* OpenURLFromTab(
+@@ -406,7 +432,52 @@
+   static LPCTSTR GetWndClass();
+   static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
+                                   WPARAM wParam, LPARAM lParam);
++  // For heX
++  WNDPROC old_browser_wndproc_;
++  ATL::CStdCallThunk* browser_window_thunk_;
++  HWND browser_window_handle_;
++  LRESULT SubclassBrowserWndProc(UINT msg, WPARAM wParam, LPARAM lParam);
++  static LRESULT CALLBACK StaticSubclassBrowserWndProc(HWND hwnd,
++                                                       UINT message,
++                                                       WPARAM wParam,
++                                                       LPARAM lParam);
++  WNDPROC old_renderer_wndproc_;
++  ATL::CStdCallThunk* renderer_window_thunk_;
++  HWND renderer_window_handle_;
++  LRESULT SubclassRendererWndProc(UINT msg, WPARAM wParam, LPARAM lParam);
++  static LRESULT CALLBACK StaticSubclassRendererWndProc(HWND hwnd,
++                                                        UINT message,
++                                                        WPARAM wParam,
++                                                        LPARAM lParam);
++  bool renderer_window_subclassed_;
++  WNDPROC old_widget_wndproc_;
++  ATL::CStdCallThunk* widget_window_thunk_;
++  HWND widget_window_handle_;
++  LRESULT SubclassWidgetWndProc(UINT msg, WPARAM wParam, LPARAM lParam);
++  static LRESULT CALLBACK StaticSubclassWidgetWndProc(HWND hwnd,
++                                                      UINT message,
++                                                      WPARAM wParam,
++                                                      LPARAM lParam);
++  int title_bar_x_;
++  int title_bar_y_;
++  int non_border_x_;
++  int non_border_y_;
++  int system_menu_icon_x_;
++  int system_menu_icon_y_;
++  int popup_position_x_;
++  int popup_position_y_;
++  int popup_size_width_;
++  int popup_size_height_;
++  int min_width_;
++  int min_height_;
++  int max_width_;
++  int max_height_;
++  HWND parent_form_;
++  bool model_dialog_;
++  bool is_doing_system_command_directly_;
+ #endif
++  void HeXRenderViewCreated(content::RenderViewHost* render_view_host);
++  void HeXRenderViewDeleted();
+ 
+   // Create the window.
+   bool PlatformCreateWindow();
+Index: libcef/browser/browser_host_impl_win.cc
+===================================================================
+--- libcef/browser/browser_host_impl_win.cc	(revision 1450)
++++ libcef/browser/browser_host_impl_win.cc	(working copy)
+@@ -29,6 +29,14 @@
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/win/hwnd_util.h"
+ 
++// For heX
++#include <windowsx.h>
++#include "hex/include/hex_types_wrappers.h"
++#include "hex/src/customized.h"
++#include "hex/src/hex_shared.h"
++#include "hex/src/hex_shared_win.h"
++#include "libcef/browser/context.h"
++
+ #pragma comment(lib, "dwmapi.lib")
+ 
+ namespace {
+@@ -434,7 +442,7 @@
+   // Register the window class
+   WNDCLASSEX wcex = {
+     /* cbSize = */ sizeof(WNDCLASSEX),
+-    /* style = */ CS_HREDRAW | CS_VREDRAW,
++    /* style = */ CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS,
+     /* lpfnWndProc = */ CefBrowserHostImpl::WndProc,
+     /* cbClsExtra = */ 0,
+     /* cbWndExtra = */ 0,
+@@ -451,7 +459,7 @@
+ 
+ // static
+ LPCTSTR CefBrowserHostImpl::GetWndClass() {
+-  return L"CefBrowserWindow";
++  return hex::GetBrowserWindowClassName(GetCurrentProcessId());
+ }
+ 
+ // static
+@@ -521,6 +529,82 @@
+ bool CefBrowserHostImpl::PlatformCreateWindow() {
+   std::wstring windowName(CefString(&window_info_.window_name));
+ 
++  // For heX
++  // Retrieve the global settings.
++  CefSettings settings = CefContext::Get()->settings();
++  HeXSettings hex_settings = CefContext::Get()->hex_settings();
++
++  // Determine if the current browser window can be customized.
++  bool can_borderless = window_info_.parent_window == NULL &&
++      hex_settings.form_style != hex::STANDARD;
++
++  // Get the window position and size passing from parent window.
++  if (window_info_.parent_window == NULL) {
++    LRESULT popupPosition =
++        SendMessage(opener_, WM_GETPOPUPFORMPOSITION, NULL, NULL);
++    int popupPositionX = GET_X_LPARAM(popupPosition);
++    int popupPositionY = GET_Y_LPARAM(popupPosition);
++    LRESULT popupSize = SendMessage(opener_, WM_GETPOPUPFORMSIZE, NULL, NULL);
++    int popupWidth = GET_X_LPARAM(popupSize);
++    if (popupWidth >= 0) {
++      window_info_.width = popupWidth;
++    }
++    int popupHeight = GET_Y_LPARAM(popupSize);
++    if (popupHeight >= 0) {
++      window_info_.height = popupHeight;
++    }
++    RECT rect;
++    GetWindowRect(opener_, &rect);
++    int openerPositionX = rect.left;
++    int openerPositionY = rect.top;
++    int openerWidth = rect.right - rect.left;
++    int openerHeight = rect.bottom - rect.top;
++    if (popupPositionX >= 0) {
++      window_info_.x = popupPositionX;
++    } else {
++      switch (popupPositionX) {
++        case hex::SYSTEMDEFAULT:
++          popupPositionX = CW_USEDEFAULT;
++          break;
++
++        case hex::PARENTCENTERED: {
++          popupPositionX = (openerWidth - popupWidth) / 2;
++          break;
++        }
++
++        case hex::SCREENCENTERED:
++        default: {
++          MONITORINFO mi = hex::GetMonitorInformation(HWND_DESKTOP);
++          popupPositionX = (mi.rcWork.right - mi.rcWork.left - popupWidth) / 2;
++        }
++        break;
++      }
++    }
++    if (popupPositionY >= 0) {
++      window_info_.y = popupPositionY;
++    } else {
++      switch (popupPositionY) {
++        case hex::SYSTEMDEFAULT:
++          popupPositionY = CW_USEDEFAULT;
++          break;
++
++        case hex::PARENTCENTERED: {
++          popupPositionY = (openerHeight - popupHeight) / 2;
++          break;
++        }
++
++        case hex::SCREENCENTERED:
++        default: {
++          MONITORINFO mi = hex::GetMonitorInformation(HWND_DESKTOP);
++          popupPositionY = (mi.rcWork.bottom - mi.rcWork.top - popupHeight) / 2;
++        }
++        break;
++      }
++    }
++    window_info_.x = popupPositionX;
++    window_info_.y = popupPositionY;
++  }
++
+   // Create the new browser window.
+   window_info_.window = CreateWindowEx(window_info_.ex_style,
+       GetWndClass(), windowName.c_str(), window_info_.style,
+@@ -550,6 +634,30 @@
+   // Parent the TabContents to the browser window.
+   SetParent(web_contents_->GetView()->GetNativeView(), window_info_.window);
+ 
++  // For heX, subclass browser & widget window when heX is running stand-alone.
++  // FIXME: Need we subclass the window all the time ?
++  if (!hex_settings.hex_module) {
++    browser_window_handle_ = window_info_.window;
++    browser_window_thunk_->Init((DWORD_PTR)StaticSubclassBrowserWndProc, this);
++    old_browser_wndproc_ = (WNDPROC)SetWindowLongPtr(browser_window_handle_,
++        GWLP_WNDPROC, (LONG)browser_window_thunk_->GetCodeAddress());
++
++    widget_window_handle_ = web_contents_->GetView()->GetNativeView();
++    if (widget_window_handle_) {
++      //SetClassLong(widget_window_handle_, GCL_HBRBACKGROUND, (LONG)CreateSolidBrush(RGB(0,0,255)));
++    //InvalidateRect(widget_window_handle_, 0, TRUE);
++      widget_window_thunk_->Init((DWORD_PTR)StaticSubclassWidgetWndProc, this);
++      old_widget_wndproc_ = (WNDPROC)SetWindowLongPtr(widget_window_handle_,
++          GWLP_WNDPROC, (LONG)widget_window_thunk_->GetCodeAddress());
++    }
++  }
++
++  if (can_borderless) {
++    SetAeroGlass(window_info_.window);
++    SetWindowPos(window_info_.window, NULL, 0, 0, 0, 0,
++        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
++  }
++
+   // Size the web view window to the browser window.
+   RECT cr;
+   GetClientRect(window_info_.window, &cr);
+Index: libcef/browser/browser_message_loop.cc
+===================================================================
+--- libcef/browser/browser_message_loop.cc	(revision 1450)
++++ libcef/browser/browser_message_loop.cc	(working copy)
+@@ -6,6 +6,8 @@
+ #include "base/run_loop.h"
+ 
+ CefBrowserMessageLoop::CefBrowserMessageLoop() {
++  // For heX
++  browser_ = NULL;
+ }
+ 
+ CefBrowserMessageLoop::~CefBrowserMessageLoop() {
+Index: libcef/renderer/content_renderer_client.cc
+===================================================================
+--- libcef/renderer/content_renderer_client.cc	(revision 1450)
++++ libcef/renderer/content_renderer_client.cc	(working copy)
+@@ -55,6 +55,14 @@
+ #include "v8/include/v8.h"
+ #include "webkit/child/worker_task_runner.h"
+ 
++// For heX
++#include "hex/src/init_node.h"
++#include "third_party/node/src/node.h"
++#include "third_party/node/deps/uv/include/uv.h"
++#include "hex/src/hex_object.h"
++#include "hex/src/hex_switches_port.h"
++#include "hex/src/hex_use_node.h"
++
+ namespace {
+ 
+ // Stub implementation of WebKit::WebPrerenderingSupport.
+@@ -442,6 +450,11 @@
+ 
+   new CefPrerendererClient(render_view);
+ 
++  // For heX, initialize Node.JS.
++  if (hex::CanUseNode()) {
++    INIT_NODE();
++  }
++
+   // Notify the render process handler.
+   CefRefPtr<CefApp> application = CefContentClient::Get()->application();
+   if (application.get()) {
+Index: libcef/renderer/browser_impl.cc
+===================================================================
+--- libcef/renderer/browser_impl.cc	(revision 1450)
++++ libcef/renderer/browser_impl.cc	(working copy)
+@@ -39,6 +39,12 @@
+ #include "third_party/WebKit/public/web/WebView.h"
+ #include "webkit/glue/webkit_glue.h"
+ 
++// For heX
++#include "hex/src/hex_use_node.h"
++#include "third_party/node/deps/uv/include/uv.h"
++#include "third_party/node/src/node.h"
++#include "libcef/renderer/v8_impl.h"
++
+ using WebKit::WebFrame;
+ using WebKit::WebScriptSource;
+ using WebKit::WebString;
+@@ -650,6 +656,24 @@
+         message->Detach(NULL);
+       }
+     }
++  // For heX, real position to execute uv_run.
++  } else if (params.name == "uv-run") {
++    if (!hex::CanUseNode()) {
++      return;
++    }
++    // Execute uv_run_once.
++    CefRefPtr<CefFrameImpl> framePtr = GetWebFrameImpl(params.frame_id);
++    if (framePtr.get()) {
++      WebFrame* web_frame = framePtr->web_frame();
++      v8::HandleScope handleScope;
++      v8::Local<v8::Context> context = web_frame->mainWorldScriptContext();
++      if (!context.IsEmpty() && !CefV8Context::InContext()) {
++        node::SetIsolate(context->GetIsolate());
++        v8::Context::Scope scope(context);
++        uv_run(uv_default_loop(), UV_RUN_NOWAIT);
++        success = true;
++      }
++    }
+   } else if (params.name == "execute-code") {
+     // Execute code.
+     CefRefPtr<CefFrameImpl> framePtr = GetWebFrameImpl(params.frame_id);

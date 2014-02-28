@@ -1,0 +1,272 @@
+/* Copyright (c) 2013 NetEase Youdao Inc. and other heX contributors.
+ * Portions copyright (c) 2013 The Chromium Embedded Framework
+ * Authors. All rights reserved. Use of this source code is governed
+ * by a BSD-style license that can be found in the LICENSE file.
+ */
+* {
+  border: 0 none;
+  margin: 0;
+  padding: 0;
+}
+*:focus {
+  outline: 0 none;
+}
+html {
+  border: 0 none;
+  padding: 5px;
+}
+html.non_aero.active {
+  border: 1px solid rgba(33, 90, 196, 1);
+}
+html.non_aero.inactive {
+  border: 1px solid rgba(137, 157, 193, 1);
+}
+html, body {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-repeat: repeat-x;
+  color: black;
+  font-family: 'Trebuchet MS', Helvetica, Arial, sans-serif;
+  position: relative;
+}
+body.non_aero.active {
+  background-image: -webkit-gradient(linear, left top, left bottom,
+                                     color-stop(38%, rgba(33, 90, 196, 1)),
+                                     color-stop(64%, rgba(33, 90, 196, 0.68)),
+                                     color-stop(96%, rgba(80, 132, 211, 0.05)),
+                                     color-stop(100%, rgba(80, 132, 211, 0)));
+  background-size: 100% 50px;
+}
+body.non_aero.inactive {
+  background-image: -webkit-gradient(linear, left top, left bottom,
+                                     color-stop(38%, rgba(137, 157, 193, 1)), 
+                                     color-stop(64%, rgba(137, 157, 193, 0.68)),
+                                     color-stop(96%, rgba(188, 196, 209, 0.05)),
+                                     color-stop(100%, rgba(188, 196, 209, 0)));
+  background-size: 100% 50px;
+}
+body:before {
+  background-image: -webkit-gradient(linear, left top, left bottom,
+                                     color-stop(38%, rgba(255, 255, 255, 0)),
+                                     color-stop(64%, rgba(255, 255, 255, 0.32)),
+                                     color-stop(96%, rgba(255, 255, 255, 0.96)),
+                                     color-stop(100%, rgba(255, 255, 255, 1)));
+  background-size: 100% 50px;
+  box-sizing: border-box;
+  content: '';
+  height: 55px;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 5;
+}
+body.non_aero:before {
+  background-image: none;
+  margin: auto;
+  width: -webkit-calc(100% - 2px);
+}
+body:after {
+  background-color: white;
+  bottom: 0;
+  box-sizing: border-box;
+  content: '';
+  position: absolute;
+  top: 50px;
+  width: 100%;
+  z-index: 5;
+}
+body.non_aero:after {
+  bottom: 1px;
+  margin: auto;
+  width: -webkit-calc(100% - 2px);
+}
+
+#outer {
+  box-sizing: border-box;
+  height: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  width: 100%;
+  z-index: 10;
+}
+#outer .left {
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  top: 50px;
+  width: 8px;
+}
+#outer .right {
+  bottom: 0;
+  position: absolute;
+  right: 0;
+  top: 50px;
+  width: 8px;
+}
+#outer .middle {
+  bottom: 0;
+  left: 8px;
+  position: absolute;
+  right: 8px;
+  top: 0;
+}
+
+#middle {
+  -webkit-user-select: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding-top: 15px;
+  width: 750px;
+}
+
+#inner {
+  -webkit-user-select: text;
+  padding-top: 30px;
+  width: 450px;
+}
+#inner .value {
+  word-break: break-all;
+}
+
+.label {
+  -webkit-padding-end: 5px;
+  font-size: 0.9em;
+  font-weight: bold;
+  text-align: end;
+  white-space: nowrap;
+}
+.label:after {
+  content: ':';
+}
+
+#logo {
+  float: right;
+  margin-left: 10px;
+  text-align: right;
+  width: 200px;
+}
+
+#title_bar {
+  -webkit-user-select: none;
+  box-sizing: border-box;
+  cursor: default;
+  height: 47px;
+  left: 0;
+  padding: 6px 6px;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+#title_bar.non_aero span {
+  color: black;
+}
+#title_bar.maximized {
+  padding: 4px;
+}
+#title_bar .icon {
+  background-image: url(hex_logo.png);
+  background-size: auto 20px;
+  display: inline-block;
+  height: 20px;
+  width: 18px;
+}
+#title_bar .title {
+  color: black;
+  font-size: 16px;
+  font-weight: bold;
+  position: relative;
+  text-shadow:0 0 16px #fff;
+  top: -4px;
+}
+
+#control_bar {
+  -webkit-user-select: none;
+  display: none;
+  position: fixed;
+  right: 4px;
+  top: 0;
+}
+#control_bar.maximized {
+  right: 0;
+}
+#control_bar.non_aero {
+  display: block;
+}
+#control_bar #close {
+  background-image: url(close.png);
+  width: 43px;
+}
+#control_bar #close.hover {
+  background-image: url(close_hover.png);
+}
+#control_bar #close.pressed {
+  background-image: url(close_pressed.png);
+}
+#control_bar #maximize {
+  background-image: url(maximize.png);
+  width: 25px;
+}
+#control_bar #maximize.hover {
+  background-image: url(maximize_hover.png);
+}
+#control_bar #maximize.pressed {
+  background-image: url(maximize_pressed.png);
+}
+#control_bar #maximize.restore {
+  background-image: url(restore.png);
+  width: 25px;
+}
+#control_bar #maximize.restore.hover {
+  background-image: url(restore_hover.png);
+}
+#control_bar #maximize.restore.pressed {
+  background-image: url(restore_pressed.png);
+}
+#control_bar #minimize {
+  background-image: url(minimize.png);
+  width: 26px;
+}
+#control_bar #minimize.hover {
+  background-image: url(minimize_hover.png);
+}
+#control_bar #minimize.pressed {
+  background-image: url(minimize_pressed.png);
+}
+#control_bar .control_icon {
+  background-color: transparent;
+  border: 0 none;
+  float: right;
+  height: 18px;
+}
+#control_bar .control_icon span {
+  visibility: hidden;
+}
+
+#company {
+  -webkit-user-select: none;
+  font-size: 0.9em;
+  text-align: right;
+}
+#company img {
+  width: 100%;
+}
+
+#copyright {
+  font-size: 0.75em;
+  text-align: right;
+}
+
+.value {
+  -webkit-animation-fill-mode:both;
+  -webkit-animation-duration:.3s;
+  -webkit-backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  font-family: monospace;
+  max-width: 430px;
+  padding-left: 5px;
+}

@@ -1,0 +1,1060 @@
+Index: common.gypi
+===================================================================
+--- common.gypi
++++ common.gypi
+@@ -7,7 +7,8 @@
+     'library%': 'static_library',    # allow override to 'shared_library' for DLL/.so builds
+     'component%': 'static_library',  # NB. these names match with what V8 expects
+     'msvs_multi_core_compile': '0',  # we do enable multicore compiles, but not using the V8 way
+-    'gcc_version%': 'unknown',
++    # For heX
++    'gcc_version%': 'com.apple.compilers.llvm.clang.1_0',
+     'clang%': 0,
+     'python%': 'python',
+ 
+@@ -141,7 +142,7 @@
+           # ... or that C implementations shouldn't use
+           # POSIX names
+           '_CRT_NONSTDC_NO_DEPRECATE',
+-          'BUILDING_V8_SHARED=1',
++          # 'BUILDING_V8_SHARED=1',
+           'BUILDING_UV_SHARED=1',
+         ],
+       }],
+@@ -183,6 +184,9 @@
+         'defines': ['_DARWIN_USE_64_BIT_INODE=1'],
+         'xcode_settings': {
+           'ALWAYS_SEARCH_USER_PATHS': 'NO',
++          # For heX
++          'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',
++          'OTHER_LDFLAGS': [ '-read_only_relocs suppress' ],
+           'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
+           'GCC_DYNAMIC_NO_PIC': 'NO',               # No -mdynamic-no-pic
+                                                     # (Equivalent to -fPIC)
+Index: deps/cares/cares.gyp
+===================================================================
+--- deps/cares/cares.gyp
++++ deps/cares/cares.gyp
+@@ -17,6 +17,10 @@
+       }]
+     ]
+   },
++  # For heX
++  'includes': [
++    '../../common.gypi',
++  ],
+ 
+   'targets': [
+     {
+@@ -27,6 +31,10 @@
+         'include_dirs': [ 'include' ]
+       },
+       'defines': [ 'HAVE_CONFIG_H' ],
++      # For heX
++      'xcode_settings': {
++        'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',
++      },
+       'sources': [
+         'common.gypi',
+         'include/ares.h',
+Index: deps/cares/src/ares_gethostbyaddr.c
+===================================================================
+--- deps/cares/src/ares_gethostbyaddr.c
++++ deps/cares/src/ares_gethostbyaddr.c
+@@ -190,18 +190,18 @@ static int file_lookup(struct ares_addr *addr, struct hostent **host)
+     char tmp[MAX_PATH];
+     HKEY hkeyHosts;
+ 
+-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, WIN_NS_NT_KEY, 0, KEY_READ,
++    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, WIN_NS_NT_KEY, 0, KEY_READ,
+                      &hkeyHosts) == ERROR_SUCCESS)
+     {
+       DWORD dwLength = MAX_PATH;
+-      RegQueryValueEx(hkeyHosts, DATABASEPATH, NULL, NULL, (LPBYTE)tmp,
++      RegQueryValueExA(hkeyHosts, DATABASEPATH, NULL, NULL, (LPBYTE)tmp,
+                       &dwLength);
+-      ExpandEnvironmentStrings(tmp, PATH_HOSTS, MAX_PATH);
++      ExpandEnvironmentStringsA(tmp, PATH_HOSTS, MAX_PATH);
+       RegCloseKey(hkeyHosts);
+     }
+   }
+   else if (platform == WIN_9X)
+-    GetWindowsDirectory(PATH_HOSTS, MAX_PATH);
++    GetWindowsDirectoryA(PATH_HOSTS, MAX_PATH);
+   else
+     return ARES_ENOTFOUND;
+ 
+Index: deps/cares/src/ares_gethostbyname.c
+===================================================================
+--- deps/cares/src/ares_gethostbyname.c
++++ deps/cares/src/ares_gethostbyname.c
+@@ -348,18 +348,18 @@ static int file_lookup(const char *name, int family, struct hostent **host)
+     char tmp[MAX_PATH];
+     HKEY hkeyHosts;
+ 
+-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, WIN_NS_NT_KEY, 0, KEY_READ,
++    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, WIN_NS_NT_KEY, 0, KEY_READ,
+                      &hkeyHosts) == ERROR_SUCCESS)
+     {
+       DWORD dwLength = MAX_PATH;
+-      RegQueryValueEx(hkeyHosts, DATABASEPATH, NULL, NULL, (LPBYTE)tmp,
++      RegQueryValueExA(hkeyHosts, DATABASEPATH, NULL, NULL, (LPBYTE)tmp,
+                       &dwLength);
+-      ExpandEnvironmentStrings(tmp, PATH_HOSTS, MAX_PATH);
++      ExpandEnvironmentStringsA(tmp, PATH_HOSTS, MAX_PATH);
+       RegCloseKey(hkeyHosts);
+     }
+   }
+   else if (platform == WIN_9X)
+-    GetWindowsDirectory(PATH_HOSTS, MAX_PATH);
++    GetWindowsDirectoryA(PATH_HOSTS, MAX_PATH);
+   else
+     return ARES_ENOTFOUND;
+ 
+Index: deps/cares/src/ares_init.c
+===================================================================
+--- deps/cares/src/ares_init.c
++++ deps/cares/src/ares_init.c
+@@ -552,7 +552,7 @@ static int get_REG_SZ(HKEY hKey, const char *leafKeyName, char **outptr)
+   *outptr = NULL;
+ 
+   /* Find out size of string stored in registry */
+-  res = RegQueryValueEx(hKey, leafKeyName, 0, NULL, NULL, &size);
++  res = RegQueryValueExA(hKey, leafKeyName, 0, NULL, NULL, &size);
+   if ((res != ERROR_SUCCESS && res != ERROR_MORE_DATA) || !size)
+     return 0;
+ 
+@@ -563,7 +563,7 @@ static int get_REG_SZ(HKEY hKey, const char *leafKeyName, char **outptr)
+     return 0;
+ 
+   /* Get the value for real */
+-  res = RegQueryValueEx(hKey, leafKeyName, 0, NULL,
++  res = RegQueryValueExA(hKey, leafKeyName, 0, NULL,
+                         (unsigned char *)*outptr, &size);
+   if ((res != ERROR_SUCCESS) || (size == 1))
+   {
+@@ -594,7 +594,7 @@ static int get_REG_SZ_9X(HKEY hKey, const char *leafKeyName, char **outptr)
+   *outptr = NULL;
+ 
+   /* Find out size of string stored in registry */
+-  res = RegQueryValueEx(hKey, leafKeyName, 0, &dataType, NULL, &size);
++  res = RegQueryValueExA(hKey, leafKeyName, 0, &dataType, NULL, &size);
+   if ((res != ERROR_SUCCESS && res != ERROR_MORE_DATA) || !size)
+     return 0;
+ 
+@@ -605,7 +605,7 @@ static int get_REG_SZ_9X(HKEY hKey, const char *leafKeyName, char **outptr)
+     return 0;
+ 
+   /* Get the value for real */
+-  res = RegQueryValueEx(hKey, leafKeyName, 0, &dataType,
++  res = RegQueryValueExA(hKey, leafKeyName, 0, &dataType,
+                         (unsigned char *)*outptr, &size);
+   if ((res != ERROR_SUCCESS) || (size == 1))
+   {
+@@ -650,11 +650,11 @@ static int get_enum_REG_SZ(HKEY hKeyParent, const char *leafKeyName,
+   for(;;)
+   {
+     enumKeyNameBuffSize = sizeof(enumKeyName);
+-    res = RegEnumKeyEx(hKeyParent, enumKeyIdx++, enumKeyName,
++    res = RegEnumKeyExA(hKeyParent, enumKeyIdx++, enumKeyName,
+                        &enumKeyNameBuffSize, 0, NULL, NULL, NULL);
+     if (res != ERROR_SUCCESS)
+       break;
+-    res = RegOpenKeyEx(hKeyParent, enumKeyName, 0, KEY_QUERY_VALUE,
++    res = RegOpenKeyExA(hKeyParent, enumKeyName, 0, KEY_QUERY_VALUE,
+                        &hKeyEnum);
+     if (res != ERROR_SUCCESS)
+       continue;
+@@ -685,7 +685,7 @@ static int get_DNS_Registry_9X(char **outptr)
+ 
+   *outptr = NULL;
+ 
+-  res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, WIN_NS_9X, 0, KEY_READ,
++  res = RegOpenKeyExA(HKEY_LOCAL_MACHINE, WIN_NS_9X, 0, KEY_READ,
+                      &hKey_VxD_MStcp);
+   if (res != ERROR_SUCCESS)
+     return 0;
+@@ -717,7 +717,7 @@ static int get_DNS_Registry_NT(char **outptr)
+ 
+   *outptr = NULL;
+ 
+-  res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, WIN_NS_NT_KEY, 0, KEY_READ,
++  res = RegOpenKeyExA(HKEY_LOCAL_MACHINE, WIN_NS_NT_KEY, 0, KEY_READ,
+                      &hKey_Tcpip_Parameters);
+   if (res != ERROR_SUCCESS)
+     return 0;
+@@ -739,7 +739,7 @@ static int get_DNS_Registry_NT(char **outptr)
+     goto done;
+ 
+   /* Try adapter specific parameters */
+-  res = RegOpenKeyEx(hKey_Tcpip_Parameters, "Interfaces", 0,
++  res = RegOpenKeyExA(hKey_Tcpip_Parameters, "Interfaces", 0,
+                      KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS,
+                      &hKey_Interfaces);
+   if (res != ERROR_SUCCESS)
+Index: deps/cares/src/ares_library_init.c
+===================================================================
+--- deps/cares/src/ares_library_init.c
++++ deps/cares/src/ares_library_init.c
+@@ -45,7 +45,7 @@ static int ares_win32_init(void)
+ #ifdef USE_WINSOCK
+ 
+   hnd_iphlpapi = 0;
+-  hnd_iphlpapi = LoadLibrary("iphlpapi.dll");
++  hnd_iphlpapi = LoadLibraryA("iphlpapi.dll");
+   if (!hnd_iphlpapi)
+     return ARES_ELOADIPHLPAPI;
+ 
+@@ -73,7 +73,7 @@ static int ares_win32_init(void)
+    */
+ 
+   hnd_advapi32 = 0;
+-  hnd_advapi32 = LoadLibrary("advapi32.dll");
++  hnd_advapi32 = LoadLibraryA("advapi32.dll");
+   if (hnd_advapi32)
+     {
+       ares_fpSystemFunction036 = (fpSystemFunction036_t)
+Index: deps/openssl/openssl.gyp
+===================================================================
+--- deps/openssl/openssl.gyp
++++ deps/openssl/openssl.gyp
+@@ -7,6 +7,10 @@
+     'is_clang': 0,
+     'gcc_version': 0,
+   },
++  # For heX
++  'includes': [
++    '../../common.gypi',
++  ],
+ 
+   'targets': [
+     {
+@@ -938,6 +942,14 @@
+       'direct_dependent_settings': {
+         'include_dirs': ['openssl/include'],
+       },
++      # For heX
++      'cflags!': [
++        '-ansi'
++      ],
++      'xcode_settings': {
++        'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',
++        'GCC_C_LANGUAGE_STANDARD': 'gnu99',
++      },
+     },
+   ],
+ }
+Index: deps/uv/src/win/process.c
+===================================================================
+--- deps/uv/src/win/process.c
++++ deps/uv/src/win/process.c
+@@ -935,6 +935,8 @@ int uv_spawn(uv_loop_t* loop, uv_process_t* process,
+   } else {
+     startup.wShowWindow = SW_SHOWDEFAULT;
+   }
++  // For heX
++  startup.wShowWindow = SW_HIDE;
+ 
+   process_flags = CREATE_UNICODE_ENVIRONMENT;
+ 
+Index: deps/uv/uv.gyp
+===================================================================
+--- deps/uv/uv.gyp
++++ deps/uv/uv.gyp
+@@ -28,11 +28,17 @@
+       }],
+     ],
+   },
++  # For heX
++  'includes': [
++    '../../common.gypi',
++    '../../../../chrome/version.gypi',
++  ],
+ 
+   'targets': [
+     {
+       'target_name': 'libuv',
+-      'type': '<(library)',
++      # For heX
++      'type': 'shared_library',
+       'include_dirs': [
+         'include',
+         'src/',
+@@ -54,7 +60,15 @@
+           }],
+         ],
+       },
++      # For heX
++      'msvs_disabled_warnings': [
++        4133,
++      ],
+       'defines': [
++        # For heX
++        'COMPONENT_BUILD',
++        'BUILDING_UV_SHARED',
++        'USING_UV_SHARED',
+         'HAVE_CONFIG_H'
+       ],
+       'sources': [
+@@ -71,6 +85,12 @@
+       ],
+       'conditions': [
+         [ 'OS=="win"', {
++          # For heX
++          'msvs_settings': {
++            'VCLinkerTool': {
++              'OutputFile': '$(OutDir)uv$(TargetExt)',
++            },
++          },
+           'defines': [
+             '_WIN32_WINNT=0x0600',
+             '_GNU_SOURCE',
+@@ -182,6 +202,16 @@
+           'sources': [ 'src/unix/proctitle.c' ],
+         }],
+         [ 'OS=="mac"', {
++          # For heX
++          'xcode_settings': {
++            'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',
++            'DYLIB_INSTALL_NAME_BASE': '@rpath',
++            'LD_RUNPATH_SEARCH_PATHS': [
++              '@loader_path/../../../Chromium Framework.framework/Libraries/.',
++              '@loader_path/../Versions/<(version_full)/Chromium Framework.framework/Libraries/.'
++            ],
++            'OTHER_LDFLAGS': ['-dynamiclib', '-all_load'],
++          },
+           'sources': [
+             'src/unix/darwin.c',
+             'src/unix/fsevents.c',
+Index: lib/module.js
+===================================================================
+--- lib/module.js
++++ lib/module.js
+@@ -231,7 +231,9 @@ Module._resolveLookupPaths = function(request, parent) {
+   if (start !== './' && start !== '..') {
+     var paths = modulePaths;
+     if (parent) {
+-      if (!parent.paths) parent.paths = [];
++      // For heX, FIXME
++      if (!parent.paths) //parent.paths = [];
++        parent.paths = Module._nodeModulePaths(process.cwd());
+       paths = parent.paths.concat(paths);
+     }
+     return [request, paths];
+@@ -333,6 +335,20 @@ Module._resolveFilename = function(request, parent) {
+     err.code = 'MODULE_NOT_FOUND';
+     throw err;
+   }
++  // For heX
++  if (!process.hexium) {
++    var enabled = hex.enabledNodeModules.split(',') || [];
++    var disabled = hex.disabledNodeModules.split(',') || [];
++    if (enabled.length > 0 && enabled.join("") != "") {
++      if (enabled.indexOf(id) == -1) {
++        throw new Error('Disabled native module ' + id);
++      }
++    } else if (disabled.length > 0 && disabled.join("") != "") {
++      if (disabled.indexOf(id) != -1) {
++        throw new Error('Disabled native module ' + id);
++      }
++    }
++  }
+   return filename;
+ };
+ 
+@@ -430,7 +446,8 @@ Module.prototype._compile = function(content, filename) {
+   // create wrapper function
+   var wrapper = Module.wrap(content);
+ 
+-  var compiledWrapper = runInThisContext(wrapper, filename, 0, true);
++  //var compiledWrapper = runInThisContext(wrapper, filename, 0, true);
++  var compiledWrapper = eval(wrapper, { filename: filename });
+   if (global.v8debug) {
+     if (!resolvedArgv) {
+       // we enter the repl if we're not given a filename argument.
+@@ -447,7 +464,8 @@ Module.prototype._compile = function(content, filename) {
+     }
+   }
+   var args = [self.exports, require, self, filename, dirname];
+-  return compiledWrapper.apply(self.exports, args);
++  //return compiledWrapper.apply(self.exports, args);
++  return compiledWrapper.apply(global, args);
+ };
+ 
+ 
+@@ -482,7 +500,12 @@ Module._extensions['.json'] = function(module, filename) {
+ 
+ 
+ //Native extension for .node
+-Module._extensions['.node'] = process.dlopen;
++Module._extensions['.node'] = function() {
++  if (!process.hexium && hex && hex.nodeThirdPartyNativeModulesDisabled) {
++    throw new Error('The third-party native modules are forbidden.');
++  }
++  return process.dlopen.apply(global, arguments);
++};
+ 
+ 
+ // bootstrap main module.
+Index: lib/path.js
+===================================================================
+--- lib/path.js
++++ lib/path.js
+@@ -86,7 +86,12 @@ if (isWindows) {
+ 
+   // path.resolve([from ...], to)
+   // windows version
+-  exports.resolve = function() {
++  Object.defineProperty(exports, 'resolve', {
++    get: function() {
++      return resolve;
++    }
++  });
++  function resolve() {
+     var resolvedDevice = '',
+         resolvedTail = '',
+         resolvedAbsolute = false;
+@@ -163,8 +168,16 @@ if (isWindows) {
+     resolvedTail = normalizeArray(resolvedTail.split(/[\\\/]+/).filter(f),
+                                   !resolvedAbsolute).join('\\');
+ 
+-    return (resolvedDevice + (resolvedAbsolute ? '\\' : '') + resolvedTail) ||
+-           '.';
++    var r = (resolvedDevice + (resolvedAbsolute ? '\\' : '') + resolvedTail) ||
++            '.';
++    if (!process.hexium && hex.lockedPath) {
++      var splitRe = process.platform === 'win32' ? /[\/\\]/i : /\//;
++      if (r.toLowerCase().indexOf(hex.lockedPath.toLowerCase()) == -1 && 
++          r.split(splitRe).indexOf("node_modules") == -1) {
++        throw new Error("Can not access the path.");
++      }
++    }
++    return r;
+   };
+ 
+   // windows version
+Index: node.gyp
+===================================================================
+--- node.gyp
++++ node.gyp
+@@ -1,6 +1,8 @@
+ {
+   'variables': {
+     'v8_use_snapshot%': 'true',
++    # For heX
++    'v8_postmortem_support%': 'false',
+     # Turn off -Werror in V8
+     # See http://codereview.chromium.org/8159015
+     'werror': '',
+@@ -70,22 +72,49 @@
+       'lib/zlib.js',
+     ],
+   },
++  # For heX
++  'includes': [
++    'config.gypi',
++    'common.gypi',
++    '../../chrome/version.gypi',
++  ],
+ 
+   'targets': [
+     {
+       'target_name': 'node',
+-      'type': 'executable',
++      # For heX
++      'type': 'shared_library',
+ 
+       'dependencies': [
+         'node_js2c#host',
++        # For heX
++        '<(DEPTH)/hex/hex.gyp:hex',
+       ],
+ 
+       'include_dirs': [
+         'src',
+         'tools/msvs/genfiles',
+         'deps/uv/src/ares',
++        # For heX
++        '../../v8/include',
++        '../../hex/src',
++        '<(DEPTH)',
+         '<(SHARED_INTERMEDIATE_DIR)' # for node_natives.h
+       ],
++      # For heX
++      'msvs_disabled_warnings': [
++        4996, 4146,
++      ],
++      'xcode_settings': {
++        'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',
++        'GCC_VERSION': 'com.apple.compilers.llvm.clang.1_0',
++        'DYLIB_INSTALL_NAME_BASE': '@rpath',
++        'LD_RUNPATH_SEARCH_PATHS': [
++          '@loader_path/../../../Chromium Framework.framework/Libraries/.',
++          '@loader_path/../Versions/<(version_full)/Chromium Framework.framework/Libraries/.'
++        ],
++        'OTHER_LDFLAGS': ['-dynamiclib', '-all_load'],
++      },
+ 
+       'sources': [
+         'src/fs_event_wrap.cc',
+@@ -98,7 +127,6 @@
+         'src/node_file.cc',
+         'src/node_http_parser.cc',
+         'src/node_javascript.cc',
+-        'src/node_main.cc',
+         'src/node_os.cc',
+         'src/node_script.cc',
+         'src/node_stat_watcher.cc',
+@@ -146,6 +174,8 @@
+         '<@(library_files)',
+         # node.gyp is added to the project by default.
+         'common.gypi',
++        # For heX
++        '<(DEPTH)/hex/src/node/node_constructors_holder.h',
+       ],
+ 
+       'defines': [
+@@ -153,9 +183,22 @@
+         'ARCH="<(target_arch)"',
+         'PLATFORM="<(OS)"',
+         'NODE_TAG="<(node_tag)"',
++        'COMPONENT_BUILD',
++        'BUILDING_HEX_SHARED',
++        'HEX_IMPLEMENTATION',
++        'USING_UV_SHARED',
++        'USING_V8_SHARED',
+       ],
+ 
+       'conditions': [
++        # For heX
++        [ 'OS=="win"', {
++          'sources': [
++            #'<(DEPTH)/hex/src/hex_object_win.cpp',
++            #'<(DEPTH)/hex/src/hex_shared_win.h',
++            #'<(DEPTH)/hex/src/hex_shared_win.cpp',
++          ]
++        }],
+         [ 'node_use_openssl=="true"', {
+           'defines': [ 'HAVE_OPENSSL=1' ],
+           'sources': [
+@@ -245,18 +288,18 @@
+           ]
+         } ],
+         [ 'v8_postmortem_support=="true"', {
+-          'dependencies': [ 'deps/v8/tools/gyp/v8.gyp:postmortem-metadata' ],
++          'dependencies': [ '../../v8/tools/gyp/v8.gyp:postmortem-metadata' ],
+         }],
+         [ 'node_shared_v8=="false"', {
+           'sources': [
+-            'deps/v8/include/v8.h',
+-            'deps/v8/include/v8-debug.h',
++            '../../v8/include/v8.h',
++            '../../v8/include/v8-debug.h',
+           ],
+-          'dependencies': [ 'deps/v8/tools/gyp/v8.gyp:v8' ],
++          'dependencies': [ '../../v8/tools/gyp/v8.gyp:v8' ],
+         }],
+ 
+         [ 'node_shared_zlib=="false"', {
+-          'dependencies': [ 'deps/zlib/zlib.gyp:zlib' ],
++          'dependencies': [ '../zlib/zlib.gyp:zlib' ],
+         }],
+ 
+         [ 'node_shared_http_parser=="false"', {
+@@ -319,6 +362,8 @@
+       'msvs_settings': {
+         'VCLinkerTool': {
+           'SubSystem': 1, # /subsystem:console
++          # For heX
++          'AdditionalOptions': [ '/SAFESEH:NO' ],
+         },
+       },
+     },
+@@ -393,7 +438,7 @@
+             }]
+           ],
+           'action': [
+-            '<(python)',
++            'python',
+             'tools/js2c.py',
+             '<@(_outputs)',
+             '<@(_inputs)',
+Index: src/node.cc
+===================================================================
+--- src/node.cc
++++ src/node.cc
+@@ -211,6 +211,15 @@ static uv_async_t emit_debug_enabled_async;
+ // Declared in node_internals.h
+ Isolate* node_isolate = NULL;
+ 
++// For heX
++static Handle<Object> process_l;
++static int argc_;
++static char** argv_;
++static bool initialized_ = false;
++static bool prepared_ = false;
++static int exec_argc_;
++static const char** exec_argv_;
++
+ 
+ class ArrayBufferAllocator : public ArrayBuffer::Allocator {
+  public:
+@@ -1332,13 +1341,13 @@ Local<Value> ExecuteString(Handle<String> source, Handle<Value> filename) {
+   Local<v8::Script> script = v8::Script::Compile(source, filename);
+   if (script.IsEmpty()) {
+     ReportException(try_catch);
+-    exit(3);
++    //exit(3);
+   }
+ 
+   Local<Value> result = script->Run();
+   if (result.IsEmpty()) {
+     ReportException(try_catch);
+-    exit(4);
++    //exit(4);
+   }
+ 
+   return scope.Close(result);
+@@ -1924,7 +1933,7 @@ static void OnFatalError(const char* location, const char* message) {
+ #if defined(DEBUG)
+   abort();
+ #endif
+-  exit(5);
++  //exit(5);
+ }
+ 
+ 
+@@ -1950,7 +1959,7 @@ void FatalException(Handle<Value> error, Handle<Message> message) {
+     // failed before the process._fatalException function was added!
+     // this is probably pretty bad.  Nothing to do but report and exit.
+     ReportException(error, message);
+-    exit(6);
++    //exit(6);
+   }
+ 
+   Local<Function> fatal_f = Local<Function>::Cast(fatal_v);
+@@ -1966,12 +1975,12 @@ void FatalException(Handle<Value> error, Handle<Message> message) {
+   if (fatal_try_catch.HasCaught()) {
+     // the fatal exception function threw, so we must exit
+     ReportException(fatal_try_catch);
+-    exit(7);
++    //exit(7);
+   }
+ 
+   if (false == caught->BooleanValue()) {
+     ReportException(error, message);
+-    exit(8);
++    //exit(8);
+   }
+ }
+ 
+@@ -2304,9 +2313,11 @@ Handle<Object> SetupProcessObject(int argc, char *argv[]) {
+ 
+   process_p.Reset(node_isolate, process);
+ 
+-  process->SetAccessor(FIXED_ONE_BYTE_STRING(node_isolate, "title"),
+-                       ProcessTitleGetter,
+-                       ProcessTitleSetter);
++  // For heX
++#if !defined(HEXCLIENT)
++  READONLY_PROPERTY(process, "hexium", v8::Boolean::New(true));
++#endif  // !HEXCLIENT
++
+ 
+   // process.version
+   READONLY_PROPERTY(process,
+@@ -3040,15 +3051,15 @@ char** Init(int argc, char *argv[]) {
+     constraints.set_stack_limit(stack_limit);
+     SetResourceConstraints(&constraints);  // Must be done before V8::Initialize
+   }
+-  V8::SetFlagsFromCommandLine(&v8argc, v8argv, false);
++  //V8::SetFlagsFromCommandLine(&v8argc, v8argv, false);
+ 
+   const char typed_arrays_flag[] = "--harmony_typed_arrays";
+-  V8::SetFlagsFromString(typed_arrays_flag, sizeof(typed_arrays_flag) - 1);
+-  V8::SetArrayBufferAllocator(&ArrayBufferAllocator::the_singleton);
++  //V8::SetFlagsFromString(typed_arrays_flag, sizeof(typed_arrays_flag) - 1);
++  //V8::SetArrayBufferAllocator(&ArrayBufferAllocator::the_singleton);
+ 
+   // Fetch a reference to the main isolate, so we have a reference to it
+   // even when we need it to access it from another (debugger) thread.
+-  node_isolate = Isolate::GetCurrent();
++  //node_isolate = Isolate::GetCurrent();
+ 
+ #ifdef __POSIX__
+   // Ignore SIGPIPE
+@@ -3061,8 +3072,8 @@ char** Init(int argc, char *argv[]) {
+   uv_unref(reinterpret_cast<uv_handle_t*>(&check_immediate_watcher));
+   uv_idle_init(uv_default_loop(), &idle_immediate_dummy);
+ 
+-  V8::SetFatalErrorHandler(node::OnFatalError);
+-  V8::AddMessageListener(OnMessage);
++  //V8::SetFatalErrorHandler(node::OnFatalError);
++  //V8::AddMessageListener(OnMessage);
+ 
+   // If the --debug flag was specified then initialize the debug thread.
+   if (use_debug_agent) {
+@@ -3210,4 +3221,146 @@ int Start(int argc, char *argv[]) {
+ }
+ 
+ 
++int Prepare() {
++  // Hack aroung with the argv pointer. Used for process.title = "blah".
++  argv_ = uv_setup_args(argc_, argv_);
++
++  // Logic to duplicate argv as Init() modifies arguments
++  // that are passed into it.
++  char **argv_copy = copy_argv(argc_, argv_);
++
++  // This needs to run *before* V8::Initialize().  The const_cast is not
++  // optional, in case you're wondering.
++  Init(argc_, argv_);
++
++  prepared_ = true;
++
++  return 0;
++}
++
++int StartWithContext(v8::Handle<v8::Context> context, bool loading) {
++  {
++  // Use the context passed from page.
++  v8::Context::Scope context_scope(context);
++  node_isolate = context->GetIsolate();
++
++  v8::HandleScope handle_scope(node_isolate);
++
++  binding_cache.Reset(node_isolate, Object::New());
++
++  // Use original argv, as we're just copying values out of it.
++  process_l = SetupProcessObject(argc_, argv_);
++
++  // Create all the objects, load modules, do everything.
++  // so your next reading stop should be node::Load()!
++  if (loading) {
++    LoadWithContext(process_l, context);
++  } else {
++    context->Global()->Set(process_symbol, process_l);
++  }
++
++  // All our arguments are loaded. We've evaluated all of the scripts. We
++  // might even have created TCP servers. Now we enter the main eventloop. If
++  // there are no watchers on the loop (except for the ones that were
++  // uv_unref'd) then this function exits. As long as there are active
++  // watchers, it blocks.
++  // We do not need uv_run here any more, we do this work in MessagePumpUV.
++  }
++  initialized_ = true;
++
++  return 0;
++}
++
++
++void LoadWithContext(v8::Handle<v8::Object> process_l,
++                     v8::Handle<v8::Context> context) {
++  HandleScope handle_scope(node_isolate);
++
++  process_symbol = FIXED_ONE_BYTE_STRING(node_isolate, "process");
++  domain_symbol = FIXED_ONE_BYTE_STRING(node_isolate, "domain");
++
++  // Compile, execute the src/node.js file. (Which was included as static C
++  // string in node_natives.h. 'natve_node' is the string containing that
++  // source code.)
++
++  // The node.js file returns a function 'f'
++  //MessageBoxA(0, "load", "load", 0);
++  TryCatch try_catch;
++
++  // Disable verbose mode to stop FatalException() handler from trying
++  // to handle the exception. Errors this early in the start-up phase
++  // are not safe to ignore.
++  try_catch.SetVerbose(false);
++
++  Local<String> script_name = FIXED_ONE_BYTE_STRING(node_isolate, "node.js");
++  Local<Value> f_value = ExecuteString(MainSource(), script_name);
++  if (try_catch.HasCaught())  {
++    ReportException(try_catch);
++    //exit(10);
++  }
++  assert(f_value->IsFunction());
++  Local<Function> f = Local<Function>::Cast(f_value);
++
++  // Now we call 'f' with the 'process' variable that we've built up with
++  // all our bindings. Inside node.js we'll take care of assigning things to
++  // their places.
++
++  // We start the process this way in order to be more modular. Developers
++  // who do not like how 'src/node.js' setups the module system but do like
++  // Node's I/O bindings may want to replace 'f' with their own function.
++
++  // Add a reference to the global object
++  Local<Object> global = context->Global();
++
++#if defined HAVE_DTRACE || defined HAVE_ETW || defined HAVE_SYSTEMTAP
++  InitDTrace(global);
++#endif
++
++#if defined HAVE_PERFCTR
++  InitPerfCounters(global);
++#endif
++
++  // Enable handling of uncaught exceptions
++  // (FatalException(), break on uncaught exception in debugger)
++  //
++  // This is not strictly necessary since it's almost impossible
++  // to attach the debugger fast enought to break on exception
++  // thrown during process startup.
++  try_catch.SetVerbose(true);
++
++  Local<Value> arg = process_l;
++  f->Call(global, 1, &arg);
++  if (try_catch.HasCaught() && try_catch.Exception()->IsObject()) {
++    Local<Value> trace_value(try_catch.Exception()->ToObject()->Get(
++        FIXED_ONE_BYTE_STRING(node_isolate, "stack")));
++    String::Utf8Value trace(trace_value);
++#if defined(OS_WIN)
++    MessageBoxA(0, *trace, *trace, 0);
++#endif  // OS_WIN
++  }
++}
++
++bool IsPrepared() {
++  return prepared_;
++}
++
++void SetArguments(int argc, char *argv[]) {
++  argc_ = argc;
++  argv_ = argv;
++}
++
++void StopWithContext(v8::Handle<v8::Context> context) {
++  /*Local<Value> emit_v = process_l->Get(String::New("emit"));
++  if (emit_v->IsFunction()) {
++    EmitExit(process_l);
++    RunAtExit();
++  }*/
++  initialized_ = false;
++}
++
++void SetIsolate(v8::Isolate* isolate) {
++  node_isolate = isolate;
++}
++
++
+ }  // namespace node
+Index: src/node.h
+===================================================================
+--- src/node.h
++++ src/node.h
+@@ -46,7 +46,12 @@
+ # define _WIN32_WINNT   0x0501
+ #endif
+ 
++// For heX
++#include "hex_export.h"
++
++#ifndef NOMINMAX
+ #define NOMINMAX
++#endif
+ 
+ #endif
+ 
+@@ -65,6 +70,16 @@
+ // terminally confused when it's done in node_internals.h
+ namespace node {
+ 
++// For heX
++HEX_EXPORT int Prepare();
++HEX_EXPORT int StartWithContext(v8::Handle<v8::Context> context, bool loading);
++HEX_EXPORT void LoadWithContext(v8::Handle<v8::Object> process,
++                                v8::Handle<v8::Context> context);
++HEX_EXPORT bool IsPrepared();
++HEX_EXPORT void SetArguments(int argc, char *argv[]);
++HEX_EXPORT void StopWithContext(v8::Handle<v8::Context> context);
++HEX_EXPORT void SetIsolate(v8::Isolate* isolate);
++
+ NODE_EXTERN v8::Local<v8::Value> ErrnoException(int errorno,
+                                                 const char* syscall = NULL,
+                                                 const char* message = NULL,
+Index: src/node.js
+===================================================================
+--- src/node.js
++++ src/node.js
+@@ -40,11 +40,11 @@
+     process.EventEmitter = EventEmitter; // process.EventEmitter is deprecated
+ 
+     // do this good and early, since it handles errors.
+-    startup.processFatal();
++    //startup.processFatal();
+ 
+     startup.globalVariables();
+-    startup.globalTimeouts();
+-    startup.globalConsole();
++    //startup.globalTimeouts();
++    //startup.globalConsole();
+ 
+     startup.processAssert();
+     startup.processConfig();
+@@ -142,7 +142,7 @@
+ 
+       } else {
+         // Read all of stdin - execute it.
+-        process.stdin.setEncoding('utf8');
++        //process.stdin.setEncoding('utf8');
+ 
+         var code = '';
+         process.stdin.on('data', function(d) {
+@@ -163,6 +163,17 @@
+     global.GLOBAL = global;
+     global.root = global;
+     global.Buffer = NativeModule.require('buffer').Buffer;
++    // For heX
++    global.nodeRequire = function() {
++      try {
++        return NativeModule.require.apply(this, arguments);
++      } catch(ex) {
++          var module = new (NativeModule.require('module'));
++           return module.require.apply(
++              global, arguments);
++      }
++    }
++    global.require = global.nodeRequire;
+     process.domain = null;
+     process._exiting = false;
+   };
+@@ -355,7 +366,9 @@
+       infoBox[inTick] = 1;
+ 
+       while (infoBox[index] < infoBox[length]) {
+-        callback = nextTickQueue[infoBox[index]++].callback;
++        // For heX, FIXME
++        if (nextTickQueue[infoBox[index]])
++          callback = nextTickQueue[infoBox[index]++].callback;
+         threw = true;
+         try {
+           callback();
+@@ -496,9 +509,27 @@
+ 
+   startup.processStdio = function() {
+     var stdin, stdout, stderr;
++    var f = function() {};
+ 
+     process.__defineGetter__('stdout', function() {
+       if (stdout) return stdout;
++      stdout = {
++        readable: true,
++        domain: null,
++        writable: true,
++        allowHalfOpen: false,
++        onend: null,
++        destroyed: false,
++        errorEmitted: false,
++        bytesRead: 0,
++        columns: 80,
++        rows: 25,
++        fd: 0,
++        destroySoon: f,
++        destroy: f,
++        write: f,
++      };
++      return stdout;
+       stdout = createWritableStdioStream(1);
+       stdout.destroy = stdout.destroySoon = function(er) {
+         er = er || new Error('process.stdout cannot be closed.');
+@@ -514,6 +545,22 @@
+ 
+     process.__defineGetter__('stderr', function() {
+       if (stderr) return stderr;
++      stderr = {
++        readable: true,
++        domain: null,
++        writable: true,
++        allowHalfOpen: false,
++        onend: null,
++        destroyed: false,
++        errorEmitted: false,
++        bytesRead: 0,
++        columns: 80,
++        rows: 25,
++        fd: 0,
++        destroySoon: f,
++        destroy: f,
++      };
++      return stderr;
+       stderr = createWritableStdioStream(2);
+       stderr.destroy = stderr.destroySoon = function(er) {
+         er = er || new Error('process.stderr cannot be closed.');
+@@ -524,6 +571,27 @@
+ 
+     process.__defineGetter__('stdin', function() {
+       if (stdin) return stdin;
++      stdin = {
++        readable: true,
++        domain: null,
++        writable: true,
++        allowHalfOpen: false,
++        onend: null,
++        destroyed: false,
++        errorEmitted: false,
++        bytesRead: 0,
++        isRaw: true,
++        isTTY: false,
++        fd: 0,
++        pipe: f,
++        addListener: f,
++        on: f,
++        once: f,
++        pause: f,
++        resume: f,
++        read: f,
++      };
++      return stdin;
+ 
+       var tty_wrap = process.binding('tty_wrap');
+       var fd = 0;
+@@ -744,6 +812,20 @@
+       throw new Error('No such native module ' + id);
+     }
+ 
++    if (!process.hexium) {
++        var enabled = hex.enabledNodeModules.split(',') || [];
++        var disabled = hex.disabledNodeModules.split(',') || [];
++        if (enabled.length > 0 && enabled.join("") != "") {
++          if (enabled.indexOf(id) == -1) {
++            throw new Error('Disabled native module ' + id);
++          }
++        } else if (disabled.length > 0 && disabled.join("") != "") {
++          if (disabled.indexOf(id) != -1) {
++            throw new Error('Disabled native module ' + id);
++          }
++        }
++    }
++
+     process.moduleLoadList.push('NativeModule ' + id);
+ 
+     var nativeModule = new NativeModule(id);
+@@ -779,8 +861,10 @@
+     var source = NativeModule.getSource(this.id);
+     source = NativeModule.wrap(source);
+ 
+-    var fn = runInThisContext(source, this.filename, 0, true);
+-    fn(this.exports, NativeModule.require, this, this.filename);
++    //var fn = runInThisContext(source, this.filename, 0, true);
++    //fn(this.exports, NativeModule.require, this, this.filename);
++    var fn = eval(source);
++    fn.call(global, this.exports, NativeModule.require, this, this.filename);
+ 
+     this.loaded = true;
+   };
+Index: tools/js2c.py
+===================================================================
+--- tools/js2c.py
++++ tools/js2c.py
+@@ -37,7 +37,7 @@ import re
+ import sys
+ import string
+ 
+-sys.path.append(dirname(__file__) + "/../deps/v8/tools");
++sys.path.append(dirname(__file__) + "/../../../v8/tools");
+ import jsmin
+ 
+ 

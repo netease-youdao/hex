@@ -81,16 +81,16 @@ if (!fs.existsSync(dir)) {
 
 ## Binary Distributions
 
-There are 6 kinds of binary distributions.
-
- * [heX end user distribution] (http://codown.youdao.com/hex/hex_1453_end_user_windows.zip)
- * [heX end user distribution without Node.js] (http://codown.youdao.com/hex/hex_1453_end_user_no_node_windows.zip)
- * [heX web develop distribution] (http://codown.youdao.com/hex/hex_1453_web_develop_windows.zip)
- * [heX web develop distribution without Node.js] (http://codown.youdao.com/hex/hex_1453_web_develop_no_node_windows.zip)
- * [heX module distribution] (http://codown.youdao.com/hex/hex_module_1453_windows.zip)
-  * [heX module PDB] (http://codown.youdao.com/hex/hex_module_1453_windows_symbols.zip)
- * [heX module distribution without Node.js] (http://codown.youdao.com/hex/hex_module_1453_no_node_windows.zip)
-  * [heX module PDB without Node.js] (http://codown.youdao.com/hex/hex_module_1453_no_node_windows_symbols.zip)
+There are 4 kinds of binary distributions each platform. Current version: v1.1.6_1612
+ * Windows
+   * heX end user distribution
+   * [heX web develop distribution](http://netease-youdao.github.io/hex/downloads/hex_1.1.6_1621_windows32_client.zip)
+   * [heX module distribution](http://netease-youdao.github.io/hex/downloads/hex_module_1.1.6_1621_windows32.zip)
+     * [heX module debug PDB](http://netease-youdao.github.io/hex/downloads/hex_module_1.1.6_1621_windows32_debug_symbols)
+     * [heX module release PDB](http://netease-youdao.github.io/hex/downloads/hex_module_1.1.6_1621_windows32_release_symbols)
+   * [HeXium](http://netease-youdao.github.io/hex/downloads/hexium.1.1.6_1612.windows32.zip)
+ * Mac OS X
+   * [HeXium](http://netease-youdao.github.io/hex/downloads/hexium.1.1.6_1612.macosx32.zip)
 
 The sources are coming soon!!!
 
@@ -131,3 +131,4 @@ CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+

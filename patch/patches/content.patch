@@ -1,0 +1,742 @@
+Index: app/content_main_runner.cc
+===================================================================
+--- app/content_main_runner.cc	(revision 220934)
++++ app/content_main_runner.cc	(working copy)
+@@ -765,6 +765,9 @@
+     std::string process_type =
+           command_line.GetSwitchValueASCII(switches::kProcessType);
+ 
++    // For heXium, browser must be run with --no-sandbox.
++    CommandLine::ForCurrentProcess()->AppendSwitch(switches::kNoSandbox);
++
+     MainFunctionParams main_params(command_line);
+ #if defined(OS_WIN)
+     main_params.sandbox_info = &sandbox_info_;
+Index: browser/browser_child_process_host_impl.cc
+===================================================================
+--- browser/browser_child_process_host_impl.cc	(revision 220934)
++++ browser/browser_child_process_host_impl.cc	(working copy)
+@@ -222,11 +222,26 @@
+                     BrowserChildProcessInstanceCreated(data));
+ }
+ 
++// For heX
++#if defined(__llvm__)
++#pragma GCC diagnostic ignored "-Wdangling-else"
++#endif
++
+ base::TerminationStatus BrowserChildProcessHostImpl::GetTerminationStatus(
+     bool known_dead, int* exit_code) {
+   DCHECK(BrowserThread::CurrentlyOn(BrowserThread::IO));
+   if (!child_process_)  // If the delegate doesn't use Launch() helper.
+-    return base::GetTerminationStatus(data_.handle, exit_code);
++    // For heX, refer to
++    // https://code.google.com/p/chromium/issues/detail?id=136663 and
++    // http://codereview.chromium.org/10698151/
++    if (!data_.handle &&
++        CommandLine::ForCurrentProcess()->HasSwitch(switches::kSingleProcess)) {
++      // For single-process mode, just report it as normal exit status.
++      exit_code = 0;
++      return base::TERMINATION_STATUS_NORMAL_TERMINATION;
++    } else {
++      return base::GetTerminationStatus(data_.handle, exit_code);
++    }
+   return child_process_->GetChildTerminationStatus(known_dead,
+                                                    exit_code);
+ }
+Index: browser/browser_main_loop.cc
+===================================================================
+--- browser/browser_main_loop.cc	(revision 220934)
++++ browser/browser_main_loop.cc	(working copy)
+@@ -110,6 +110,12 @@
+ #include <X11/Xlib.h>
+ #endif
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++#include "content/common/view_messages.h"
++#include "hex/src/hex_switches.h"
++#endif  // !HEXCLIENT
++
+ // One of the linux specific headers defines this as a macro.
+ #ifdef DestroyAll
+ #undef DestroyAll
+@@ -397,7 +403,12 @@
+ 
+   // Create a MessageLoop if one does not already exist for the current thread.
+   if (!base::MessageLoop::current())
++    // For heXium
++#if defined(HEXCLIENT)
+     main_message_loop_.reset(new base::MessageLoop(base::MessageLoop::TYPE_UI));
++#else  // !HEXCLIENT
++    main_message_loop_.reset(new HeXBrowserMainLoop());
++#endif  // HEXCLIENT
+ 
+   InitializeMainThread();
+ 
+@@ -830,7 +841,13 @@
+ 
+   // Register the main thread by instantiating it, but don't call any methods.
+   main_thread_.reset(
++  // For heXium
++#if defined(HEXCLIENT)
+       new BrowserThreadImpl(BrowserThread::UI, base::MessageLoop::current()));
++#else  // !HEXCLIENT
++      new BrowserThreadImpl(BrowserThread::UI, HeXBrowserMainLoop::current()));
++#endif  // HEXCLIENT
++
+ }
+ 
+ int BrowserMainLoop::BrowserThreadsStarted() {
+@@ -995,4 +1012,86 @@
+ #endif
+ }
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++typedef std::vector<RenderViewHost*> Instances;
++
++namespace {
++base::LazyInstance<Instances>::Leaky g_render_view_host_instances =
++    LAZY_INSTANCE_INITIALIZER;
++
++static RenderViewHost* FindRenderViewHost(RenderViewHost* render_view_host) {
++  if (g_render_view_host_instances == NULL)
++    return NULL;
++  Instances::iterator it =
++      std::find(g_render_view_host_instances.Get().begin(),
++                g_render_view_host_instances.Get().end(),
++                render_view_host);
++  if (it != g_render_view_host_instances.Get().end()) {
++    return *it;
++  }
++  return NULL;
++}
++
++}  // namespace
++
++HeXBrowserMainLoop::HeXBrowserMainLoop()
++    : render_view_host_(NULL),
++      auto_idle_(CommandLine::ForCurrentProcess()->HasSwitch(
++                 switches::kAutoIdleHiddenViewNodeEventLoop)) {
++}
++
++HeXBrowserMainLoop* HeXBrowserMainLoop::current() {
++  base::MessageLoop* loop = base::MessageLoop::current();
++  DCHECK_EQ(base::MessageLoop::TYPE_UI, loop->type());
++  return static_cast<HeXBrowserMainLoop*>(loop);
++}
++
++void HeXBrowserMainLoop::SetRender(RenderViewHost* render_view_host) {
++  if (render_view_host->GetSiteInstance()->GetSiteURL().SchemeIs(
++      chrome::kChromeDevToolsScheme))
++    return;
++  if (auto_idle_) {
++    render_view_host_ = render_view_host;
++  } else {
++    if (!FindRenderViewHost(render_view_host)) {
++      g_render_view_host_instances.Get().push_back(render_view_host);
++    }
++  }
++}
++
++void HeXBrowserMainLoop::RemoveRender(RenderViewHost* render_view_host) {
++  if (auto_idle_) {
++    if (render_view_host_ == render_view_host) {
++      render_view_host_ = NULL;
++    }
++  } else {
++    Instances::iterator it =
++        std::find(g_render_view_host_instances.Get().begin(),
++                  g_render_view_host_instances.Get().end(),
++                  render_view_host);
++    if (it != g_render_view_host_instances.Get().end()) {
++      g_render_view_host_instances.Get().erase(it);
++    }
++  }
++}
++
++void HeXBrowserMainLoop::UvRun() {
++  if (auto_idle_) {
++    if (render_view_host_) {
++      render_view_host_->Send(
++          new HeXMsg_Request(render_view_host_->GetRoutingID(), "uv-run"));
++    }
++  } else {
++    for (Instances::iterator it = g_render_view_host_instances.Get().begin();
++         it != g_render_view_host_instances.Get().end();
++         it++) {
++      if (*it) {
++        (*it)->Send(new HeXMsg_Request((*it)->GetRoutingID(), "uv-run"));
++      }
++    }
++  }
++}
++#endif  // !HEXCLIENT
++
+ }  // namespace content
+Index: browser/browser_main_loop.h
+===================================================================
+--- browser/browser_main_loop.h	(revision 220934)
++++ browser/browser_main_loop.h	(working copy)
+@@ -11,11 +11,23 @@
+ #include "content/browser/browser_process_sub_thread.h"
+ #include "content/public/browser/browser_main_runner.h"
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++#include "base/lazy_instance.h"
++#include "content/public/browser/render_view_host.h"
++#include "content/public/browser/site_instance.h"
++#include "content/public/common/url_constants.h"
++#endif  // !HEXCLIENT
++
+ class CommandLine;
+ 
+ namespace base {
+ class HighResolutionTimerManager;
+ class MessageLoop;
++// For heXium
++#if !defined(HEXCLIENT)
++class MessageLoopForUI;
++#endif  // !HEXCLIENT
+ class PowerMonitor;
+ class SystemMonitor;
+ namespace debug {
+@@ -52,6 +64,24 @@
+ class DeviceMonitorMac;
+ #endif
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++class CONTENT_EXPORT HeXBrowserMainLoop : public base::MessageLoopForUI {
++ public:
++  HeXBrowserMainLoop();
++  virtual ~HeXBrowserMainLoop() {}
++  static HeXBrowserMainLoop* current();
++  virtual void UvRun() OVERRIDE;
++  void SetRender(RenderViewHost* render_view_host);
++  void RemoveRender(RenderViewHost* current_render_view_host);
++
++ private:
++  RenderViewHost* render_view_host_;
++  bool auto_idle_;
++  DISALLOW_COPY_AND_ASSIGN(HeXBrowserMainLoop);
++};
++#endif  // !HEXCLIENT
++
+ // Implements the main browser loop stages called from BrowserMainRunner.
+ // See comments in browser_main_parts.h for additional info.
+ class CONTENT_EXPORT BrowserMainLoop {
+Index: browser/renderer_host/render_process_host_impl.cc
+===================================================================
+--- browser/renderer_host/render_process_host_impl.cc	(revision 220934)
++++ browser/renderer_host/render_process_host_impl.cc	(working copy)
+@@ -149,6 +149,11 @@
+ 
+ #include "third_party/skia/include/core/SkBitmap.h"
+ 
++// For heX
++#if defined(HEXCLIENT)
++#include "hex/src/hex_switches.h"
++#endif  // HEXCLIENT
++
+ extern bool g_exited_main_message_loop;
+ 
+ static const char* kSiteProcessMapKeyName = "content_site_process_map";
+@@ -1006,6 +1011,26 @@
+ #if defined(OS_ANDROID)
+     switches::kDisableDeviceMotion,
+ #endif
++    // For heX, for render process.
++#if defined(HEXCLIENT)
++    switches::kHeXModule,
++#if defined(OS_WIN)
++    switches::kDisableIMEComposition,
++#endif
++    switches::kDisableFormApis,
++    switches::kNodeArgs,
++    switches::kDisableAsyncNodeApis,
++    switches::kDisabledNodeModules,
++    switches::kEnabledNodeModules,
++    switches::kLockedPath,
++    switches::kDisableNodeThirdPartyNativeModules,
++    switches::kUseNodeTypedArrays,
++    switches::kLaunchNodeInAllPages,
++    switches::kLoadNodeManually,
++#else
++    // For heXium
++    switches::kCurrentWorkingDirectory,
++#endif  // HEXCLIENT
+     // Please keep these in alphabetical order. Compositor switches here should
+     // also be added to chrome/browser/chromeos/login/chrome_restart_request.cc.
+     cc::switches::kBackgroundColorInsteadOfCheckerboard,
+Index: browser/renderer_host/render_view_host_impl.cc
+===================================================================
+--- browser/renderer_host/render_view_host_impl.cc	(revision 220934)
++++ browser/renderer_host/render_view_host_impl.cc	(working copy)
+@@ -69,6 +69,12 @@
+ #include "ui/snapshot/snapshot.h"
+ #include "webkit/browser/fileapi/isolated_context.h"
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++#include "base/message_loop/message_loop.h"
++#include "content/browser/browser_main_loop.h"
++#endif  // !HEXCLIENT
++
+ #if defined(OS_MACOSX)
+ #include "content/browser/renderer_host/popup_menu_helper_mac.h"
+ #elif defined(OS_ANDROID)
+@@ -187,6 +193,11 @@
+ 
+   GetProcess()->EnableSendQueue();
+ 
++  // For heXium
++#if !defined(HEXCLIENT)
++  HeXBrowserMainLoop::current()->SetRender(this);
++#endif  // !HEXCLIENT
++
+   for (size_t i = 0; i < g_created_callbacks.Get().size(); i++)
+     g_created_callbacks.Get().at(i).Run(this);
+ 
+@@ -202,6 +213,11 @@
+   FOR_EACH_OBSERVER(
+       RenderViewHostObserver, observers_, RenderViewHostDestruction());
+ 
++  // For heXium
++#if !defined(HEXCLIENT)
++  HeXBrowserMainLoop::current()->RemoveRender(this);
++#endif  // !HEXCLIENT
++
+     GetDelegate()->RenderViewDeleted(this);
+ 
+   // Be sure to clean up any leftover state from cross-site requests.
+@@ -328,6 +344,16 @@
+     // completing a RVH swap or unload handler.
+     SetSwappedOut(false);
+ 
++    // For heXium
++#if !defined(HEXCLIENT)
++    GURL url = params.url;
++    if (!url.SchemeIs(chrome::kChromeDevToolsScheme) &&
++        CommandLine::ForCurrentProcess()->HasSwitch(
++            switches::kAutoIdleHiddenViewNodeEventLoop)) {
++      HeXBrowserMainLoop::current()->SetRender(this);
++    }
++#endif  // !HEXCLIENT
++
+     Send(new ViewMsg_Navigate(GetRoutingID(), params));
+   }
+ 
+Index: browser/renderer_host/render_widget_host_impl.cc
+===================================================================
+--- browser/renderer_host/render_widget_host_impl.cc	(revision 220934)
++++ browser/renderer_host/render_widget_host_impl.cc	(working copy)
+@@ -67,6 +67,11 @@
+ #include "content/common/plugin_constants_win.h"
+ #endif
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++#include "content/browser/browser_main_loop.h"
++#endif  // !HEXCLIENT
++
+ using base::Time;
+ using base::TimeDelta;
+ using base::TimeTicks;
+@@ -510,6 +515,14 @@
+     return;
+   is_hidden_ = false;
+ 
++  // For heXium
++#if !defined(HEXCLIENT)
++  if (CommandLine::ForCurrentProcess()->HasSwitch(
++      switches::kAutoIdleHiddenViewNodeEventLoop)) {
++    HeXBrowserMainLoop::current()->SetRender(RenderViewHost::From(this));
++  }
++#endif  // !HEXCLIENT
++
+   SendScreenRects();
+ 
+   BackingStore* backing_store = BackingStoreManager::Lookup(this);
+Index: browser/renderer_host/render_widget_host_view_win.cc
+===================================================================
+--- browser/renderer_host/render_widget_host_view_win.cc	(revision 220934)
++++ browser/renderer_host/render_widget_host_view_win.cc	(working copy)
+@@ -78,6 +78,10 @@
+ #include "ui/gfx/screen.h"
+ #include "webkit/common/cursors/webcursor.h"
+ #include "win8/util/win8_util.h"
++// For heX
++#if defined(HEXCLIENT)
++#include "hex/src/hex_switches.h"
++#endif  // HEXCLIENT
+ 
+ using base::TimeDelta;
+ using base::TimeTicks;
+@@ -305,6 +309,16 @@
+   return pinch_allowed;
+ }
+ 
++// For heX
++bool DisableIMEComposition() {
++#if defined(HEXCLIENT)
++  return CommandLine::ForCurrentProcess()->HasSwitch(
++      switches::kDisableIMEComposition);
++#else
++  return false;
++#endif  // HEXCLIENT
++}
++
+ void GetScreenInfoForWindow(gfx::NativeViewId id,
+                             WebKit::WebScreenInfo* results) {
+   HWND window = gfx::NativeViewFromId(id);
+@@ -1635,6 +1649,10 @@
+ LRESULT RenderWidgetHostViewWin::OnImeStartComposition(
+     UINT message, WPARAM wparam, LPARAM lparam, BOOL& handled) {
+   TRACE_EVENT0("browser", "RenderWidgetHostViewWin::OnImeStartComposition");
++  if (DisableIMEComposition()) {
++    handled = TRUE;
++    return 0;
++  }
+   if (!render_widget_host_)
+     return 0;
+ 
+@@ -1653,6 +1671,10 @@
+ LRESULT RenderWidgetHostViewWin::OnImeComposition(
+     UINT message, WPARAM wparam, LPARAM lparam, BOOL& handled) {
+   TRACE_EVENT0("browser", "RenderWidgetHostViewWin::OnImeComposition");
++  if (DisableIMEComposition()) {
++    handled = TRUE;
++    return 0;
++  }
+   if (!render_widget_host_)
+     return 0;
+ 
+@@ -1710,6 +1732,10 @@
+ LRESULT RenderWidgetHostViewWin::OnImeEndComposition(
+     UINT message, WPARAM wparam, LPARAM lparam, BOOL& handled) {
+   TRACE_EVENT0("browser", "RenderWidgetHostViewWin::OnImeEndComposition");
++  if (DisableIMEComposition()) {
++    handled = TRUE;
++    return 0;
++  }
+   if (!render_widget_host_)
+     return 0;
+ 
+Index: browser/web_contents/web_contents_view_win.cc
+===================================================================
+--- browser/web_contents/web_contents_view_win.cc	(revision 220934)
++++ browser/web_contents/web_contents_view_win.cc	(working copy)
+@@ -19,6 +19,12 @@
+ #include "ui/base/win/hwnd_subclass.h"
+ #include "ui/gfx/screen.h"
+ 
++// For heX
++#if defined(HEXCLIENT)
++#include "base/command_line.h"
++#include "hex/src/hex_switches.h"
++#endif  // HEXCLIENT
++
+ namespace content {
+ WebContentsViewPort* CreateWebContentsView(
+     WebContentsImpl* web_contents,
+@@ -79,6 +85,18 @@
+ 
+ void AddFilterToParentHwndSubclass(HWND hwnd, ui::HWNDMessageFilter* filter) {
+   HWND parent = ::GetAncestor(hwnd, GA_ROOT);
++  // For heX, do not subclass the top window when it is not a window created by
++  // Chromium itself in heX module mode.
++  // FIXME: Do we really need to do this?
++#if defined(HEXCLIENT)
++  WCHAR window_class_name[MAX_PATH] = { 0 };
++  ::GetClassName(parent, window_class_name, sizeof window_class_name);
++  const CommandLine& command_line = *CommandLine::ForCurrentProcess();
++  if (command_line.HasSwitch(switches::kHeXModule) &&
++      wcscmp(window_class_name, L"Chrome_WidgetWin_0") != 0) {
++    return;
++  }
++#endif  // HEXCLIENT
+   if (parent) {
+     ui::HWNDSubclass::RemoveFilterFromAllTargets(filter);
+     ui::HWNDSubclass::AddFilterToTarget(parent, filter);
+Index: common/view_messages.h
+===================================================================
+--- common/view_messages.h	(revision 220934)
++++ common/view_messages.h	(working copy)
+@@ -2376,3 +2376,9 @@
+ // Adding a new message? Stick to the sort order above: first platform
+ // independent ViewMsg, then ifdefs for platform specific ViewMsg, then platform
+ // independent ViewHostMsg, then ifdefs for platform specific ViewHostMsg.
++
++// For heXium
++#if !defined(HEXCLIENT)
++IPC_MESSAGE_ROUTED1(HeXMsg_Request,
++                    std::string)
++#endif  // !HEXCLIENT
+Index: content.gyp
+===================================================================
+--- content.gyp	(revision 220934)
++++ content.gyp	(working copy)
+@@ -7,6 +7,8 @@
+     'chromium_code': 1,  # Use higher warning level.
+     'chromium_enable_vtune_jit_for_v8%': 0,  # enable the vtune support for V8 engine.
+     'directxsdk_exists': '<!(python <(DEPTH)/build/dir_exists.py ../third_party/directxsdk)',
++    # For heX
++    'hexclient%': '<!(echo %HEXCLIENT%)',
+   },
+   'target_defaults': {
+     'defines': ['CONTENT_IMPLEMENTATION'],
+Index: content_common.gypi
+===================================================================
+--- content_common.gypi	(revision 220934)
++++ content_common.gypi	(working copy)
+@@ -349,6 +349,8 @@
+     'common/url_schemes.h',
+     'common/utility_messages.h',
+     'common/view_messages.h',
++    # For heX
++    #'<(DEPTH)/hex/src/hex_messages.h',
+     'common/view_message_enums.h',
+     'common/webplugin_geometry.cc',
+     'common/webplugin_geometry.h',
+Index: content_renderer.gypi
+===================================================================
+--- content_renderer.gypi	(revision 220934)
++++ content_renderer.gypi	(working copy)
+@@ -25,11 +25,22 @@
+     '../webkit/storage_common.gyp:webkit_storage_common',
+     '../webkit/support/webkit_support.gyp:glue',
+     '../webkit/support/webkit_support.gyp:glue_child',
++    # For heXium
++    '<(DEPTH)/third_party/node/node.gyp:node',
++    '<(DEPTH)/third_party/node/deps/uv/uv.gyp:libuv',
+   ],
+   'include_dirs': [
+     '..',
+     '<(SHARED_INTERMEDIATE_DIR)',  # Needed by key_systems_info.cc.
++    # For heXium
++    '<(DEPTH)/hex/src',
++    '<(DEPTH)/third_party/node/src',
++    '<(DEPTH)/third_party/node/deps/uv/include',
+   ],
++  # For heXium
++  'msvs_disabled_warnings': [
++    4800,
++  ],
+   'sources': [
+     'public/renderer/android_content_detection_prefixes.cc',
+     'public/renderer/android_content_detection_prefixes.h',
+@@ -508,6 +519,10 @@
+     'renderer/websharedworkerrepository_impl.h',
+   ],
+   'conditions': [
++    # For heX
++    ['hexclient==1', {
++      'defines': [ 'HEXCLIENT' ],
++    }],
+     ['notifications==0', {
+       'sources!': [
+         'renderer/notification_provider.cc',
+Index: public/common/content_switches.cc
+===================================================================
+--- public/common/content_switches.cc	(revision 220934)
++++ public/common/content_switches.cc	(working copy)
+@@ -947,6 +947,15 @@
+ extern const char kTestCompositor[]         = "test-compositor";
+ #endif
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++// Do not run the Node's event loop for the hidden webview.
++const char kAutoIdleHiddenViewNodeEventLoop[] =
++    "auto-idle-hidden-view-node-event-loop";
++// Sets the current working directory for Node.js.
++const char kCurrentWorkingDirectory[] = "current-working-directory";
++#endif  // !HEXCLIENT
++
+ // Don't dump stuff here, follow the same order as the header.
+ 
+ }  // namespace switches
+Index: public/common/content_switches.h
+===================================================================
+--- public/common/content_switches.h	(revision 220934)
++++ public/common/content_switches.h	(working copy)
+@@ -284,6 +284,12 @@
+ CONTENT_EXPORT extern const char kTestCompositor[];
+ #endif
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++CONTENT_EXPORT extern const char kAutoIdleHiddenViewNodeEventLoop[];
++CONTENT_EXPORT extern const char kCurrentWorkingDirectory[];
++#endif  // !HEXCLIENT
++
+ // DON'T ADD RANDOM STUFF HERE. Put it in the main section above in
+ // alphabetical order, or in one of the ifdefs (also in order in each section).
+ 
+Index: renderer/render_view_impl.cc
+===================================================================
+--- renderer/render_view_impl.cc	(revision 220934)
++++ renderer/render_view_impl.cc	(working copy)
+@@ -249,6 +249,20 @@
+ #include "content/renderer/pepper/plugin_module.h"
+ #endif
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++#include "hex/src/hex_use_node.h"
++#include "third_party/node/deps/uv/include/uv.h"
++#include "third_party/node/src/node.h"
++#if defined(OS_WIN)
++#include <stdlib.h>
++#include <direct.h>
++#else
++#include <unistd.h>
++#define _chdir chdir
++#endif  // OS_WIN
++#endif  // !HEXCLIENT
++
+ using WebKit::WebAccessibilityNotification;
+ using WebKit::WebAccessibilityObject;
+ using WebKit::WebApplicationCacheHost;
+@@ -1329,6 +1343,10 @@
+   bool handled = true;
+   bool msg_is_ok = true;
+   IPC_BEGIN_MESSAGE_MAP_EX(RenderViewImpl, message, msg_is_ok)
++    // For heXium
++#if !defined(HEXCLIENT)
++    IPC_MESSAGE_HANDLER(HeXMsg_Request, OnHeXRequest)
++#endif  // !HEXCLIENT
+     IPC_MESSAGE_HANDLER(InputMsg_Copy, OnCopy)
+     IPC_MESSAGE_HANDLER(InputMsg_Cut, OnCut)
+     IPC_MESSAGE_HANDLER(InputMsg_Delete, OnDelete)
+@@ -1511,6 +1529,32 @@
+ 
+   GetContentClient()->SetActiveURL(params.url);
+ 
++    // For heXium
++#if !defined(HEXCLIENT)
++  GURL url = params.url;
++  if (!url.SchemeIs(chrome::kChromeDevToolsScheme)) {
++    if (url.SchemeIsFile()) {
++      std::string file_name = url.ExtractFileName();
++      std::string file_path = url.spec();
++      url_parse::Parsed parsed;
++      url_parse::ParseFileURL(file_path.c_str(), url.spec().size(), &parsed);
++      std::string path = file_path.substr(parsed.path.begin, parsed.path.len -
++          file_name.size() - 1);
++  #if defined(OS_WIN)
++      path = path.substr(1, path.size() - 1);
++      ReplaceSubstringsAfterOffset(&path, 0, "/", "\\");
++  #endif  // OS_WIN
++      _chdir(path.c_str());
++    } else {
++      std::string cwd = CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
++          switches::kCurrentWorkingDirectory);
++      if (!cwd.empty()) {
++        _chdir(cwd.c_str());
++      }
++    }
++  }
++#endif  // !HEXCLIENT
++
+   WebFrame* frame = webview()->mainFrame();
+   if (!params.frame_to_navigate.empty()) {
+     frame = webview()->findFrameByName(
+@@ -1706,6 +1750,27 @@
+   target_url_status_ = TARGET_NONE;
+ }
+ 
++// For heXium
++#if !defined(HEXCLIENT)
++void RenderViewImpl::OnHeXRequest(std::string name) {
++  if (!webview())
++    return;
++  if (name == "uv-run") {
++    WebFrame* web_frame = webview()->mainFrame();
++    std::string url = web_frame->document().url().string().utf8();
++    if (web_frame && url.substr(0, 15) == "chrome-devtools")
++      return;
++    v8::HandleScope handleScope;
++    v8::Local<v8::Context> context = web_frame->mainWorldScriptContext();
++    if (!context.IsEmpty()) {
++      node::SetIsolate(context->GetIsolate());
++      v8::Context::Scope scope(context);
++      uv_run(uv_default_loop(), UV_RUN_NOWAIT);
++    }
++  }
++}
++#endif  // !HEXCLIENT
++
+ void RenderViewImpl::OnCopy() {
+   if (!webview())
+     return;
+Index: renderer/render_view_impl.h
+===================================================================
+--- renderer/render_view_impl.h	(revision 220934)
++++ renderer/render_view_impl.h	(working copy)
+@@ -910,6 +910,10 @@
+   // The documentation for these functions should be in
+   // content/common/*_messages.h for the message that the function is handling.
+ 
++  // For heXium
++#if !defined(HEXCLIENT)
++  void OnHeXRequest(std::string name);
++#endif  // !HEXCLIENT
+   void OnCopy();
+   void OnCut();
+   void OnDelete();
+Index: renderer/renderer_main.cc
+===================================================================
+--- renderer/renderer_main.cc	(revision 220934)
++++ renderer/renderer_main.cc	(working copy)
+@@ -53,6 +53,15 @@
+ #include "third_party/libjingle/overrides/init_webrtc.h"
+ #endif
+ 
++// For heXium
++#if defined(OS_WIN)
++#include <stdlib.h>
++#include <direct.h>
++#else
++#include <unistd.h>
++#define _chdir chdir
++#endif  // OS_WIN
++
+ namespace content {
+ namespace {
+ // This function provides some ways to test crash and assertion handling
+@@ -122,6 +131,16 @@
+ 
+   const CommandLine& parsed_command_line = parameters.command_line;
+ 
++  // For heXium
++#if !defined(HEXCLIENT)
++  if (parsed_command_line.HasSwitch(switches::kCurrentWorkingDirectory)) {
++    char* path = NULL;
++    path = (char*)parsed_command_line.GetSwitchValueASCII(
++        switches::kCurrentWorkingDirectory).c_str();
++    _chdir(path);
++  }
++#endif  
++
+ #if defined(OS_MACOSX)
+   base::mac::ScopedNSAutoreleasePool* pool = parameters.autorelease_pool;
+ #endif  // OS_MACOSX
+Index: content_browser.gypi
+===================================================================
+--- content_browser.gypi	(revision 220934)
++++ content_browser.gypi	(working copy)
+@@ -1204,6 +1204,10 @@
+     '<(SHARED_INTERMEDIATE_DIR)/ui/ui_resources/grit/webui_resources_map.cc',
+   ],
+   'conditions': [
++    # For heX
++    ['hexclient==1', {
++      'defines': [ 'HEXCLIENT' ],
++    }],
+     ['OS!="win" and OS!="mac" and OS!="linux"', {
+       'sources': [
+         'browser/gamepad/gamepad_platform_data_fetcher.cc',

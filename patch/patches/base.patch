@@ -1,0 +1,73 @@
+Index: message_loop/message_loop.h
+===================================================================
+--- message_loop/message_loop.h	(revision 220934)
++++ message_loop/message_loop.h	(working copy)
+@@ -479,6 +479,14 @@
+   virtual bool DoDelayedWork(TimeTicks* next_delayed_work_time) OVERRIDE;
+   virtual bool DoIdleWork() OVERRIDE;
+ 
++  // For heX
++#if defined(OS_WIN)
++  virtual bool PreTranslateMessage(const MSG& msg) OVERRIDE {
++    return false;
++  }
++#endif  // OS_WIN
++  virtual void UvRun() OVERRIDE {}
++
+   Type type_;
+ 
+   // A list of tasks that need to be processed by this instance.  Note that
+Index: message_loop/message_pump.h
+===================================================================
+--- message_loop/message_pump.h	(revision 220934)
++++ message_loop/message_pump.h	(working copy)
+@@ -39,6 +39,12 @@
+     // Called from within Run just before the message pump goes to sleep.
+     // Returns true to indicate that idle work was done.
+     virtual bool DoIdleWork() = 0;
++
++    // For heX
++#if defined(OS_WIN)
++    virtual bool PreTranslateMessage(const MSG& msg) = 0;
++#endif  // OS_WIN
++    virtual void UvRun() = 0;
+   };
+ 
+   MessagePump();
+Index: message_loop/message_pump_mac.mm
+===================================================================
+--- message_loop/message_pump_mac.mm	(revision 220934)
++++ message_loop/message_pump_mac.mm	(working copy)
+@@ -278,6 +278,8 @@
+   if (resignal_work_source) {
+     CFRunLoopSourceSignal(work_source_);
+   }
++  // For heX
++  delegate_->UvRun();
+ 
+   return resignal_work_source;
+ }
+Index: message_loop/message_pump_win.cc
+===================================================================
+--- message_loop/message_pump_win.cc	(revision 220934)
++++ message_loop/message_pump_win.cc	(working copy)
+@@ -265,6 +265,9 @@
+     if (more_work_is_plausible)
+       continue;
+ 
++    // For heX, notify to execute uv_run.
++    state_->delegate->UvRun();
++
+     WaitForWork();  // Wait (sleep) until we have work to do again.
+   }
+ }
+@@ -400,7 +403,8 @@
+     if (state_->dispatcher) {
+       if (!state_->dispatcher->Dispatch(msg))
+         state_->should_quit = true;
+-    } else {
++    // For heX, simulate MFC's PreTranslateMessage function.
++    } else if (!state_->delegate->PreTranslateMessage(msg)) {
+       TranslateMessage(&msg);
+       DispatchMessage(&msg);
+     }
