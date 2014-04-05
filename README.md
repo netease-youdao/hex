@@ -7,10 +7,10 @@
 heX is a solution that provides a new way to build cross-platform desktop application using web technology. heX is based on CEF and integrates Chromium and Node.js. Modules or third-party extensions of Node.js can be "required" from the web page, while the DOM element of HTML can also be visited from Node.js' modules. In addition, heX can be embedded as a web container module into desktop projects, allowing desktop applications to take advantage of HTML5 features.
 
  * Homepage: <http://hex.youdao.com>
- * HeXium homepage: <http://hex.youdao.com/hexium>
- * Downloads: <http://hex.youdao.com/downloads>
+ * HeXium homepage: <http://hex.youdao.com/zh-cn/tutorial/hexium.html>
+ * Downloads: <http://hex.youdao.com/zh-cn/downloads/index.html>
  * Mailing list: <https://groups.google.com/group/youdao_hex>
- * Documentation: <http://hex.youdao.com/documentation>
+ * Documentation: <http://hex.youdao.com/zh-cn/tutorial/index.html>
  * Wiki: <https://github.com/netease-youdao/hex/wiki>
  * Issues: <https://github.com/netease-youdao/hex/issues>
 
@@ -84,13 +84,13 @@ if (!fs.existsSync(dir)) {
 There are 4 kinds of binary distributions each platform. Current version: v1.1.6_1612
  * Windows
    * heX end user distribution
-   * [heX web develop distribution](http://netease-youdao.github.io/hex/downloads/hex_1.1.6_1621_windows32_client.zip)
-   * [heX module distribution](http://netease-youdao.github.io/hex/downloads/hex_module_1.1.6_1621_windows32.zip)
-     * [heX module debug PDB](http://netease-youdao.github.io/hex/downloads/hex_module_1.1.6_1621_windows32_debug_symbols)
-     * [heX module release PDB](http://netease-youdao.github.io/hex/downloads/hex_module_1.1.6_1621_windows32_release_symbols)
-   * [HeXium](http://netease-youdao.github.io/hex/downloads/hexium.1.1.6_1612.windows32.zip)
+   * [heX web develop distribution](http://download.ydstatic.com/hex/dist/v1.1.6_1621/hex_1.1.6_1621_windows32.zip)
+   * [heX module distribution](http://download.ydstatic.com/hex/dist/v1.1.6_1621/hex_module_1.1.6_1621_windows32.zip)
+     * [heX module debug PDB](http://download.ydstatic.com/hex/dist/v1.1.6_1621/hex_module_1.1.6_1621_windows32_debug_symbols.zip)
+     * [heX module release PDB](http://download.ydstatic.com/hex/dist/v1.1.6_1621/hex_module_1.1.6_1621_windows32_release_symbols.zip)
+   * [HeXium](http://download.ydstatic.com/hex/dist/v1.1.6_1621/hexium_1.1.6_1621_windows32.zip)
  * Mac OS X
-   * [HeXium](http://netease-youdao.github.io/hex/downloads/hexium.1.1.6_1612.macosx32.zip)
+   * [HeXium](http://download.ydstatic.com/hex/dist/v1.1.6_1621/hexium_1.1.6_1621_macosx32.zip)
 
 The sources are coming soon!!!
 
